@@ -1,0 +1,459 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>TheoApp</title><link rel="manifest" href="manifest.webmanifest"><meta name="theme-color" content="#6b1a1f"><link rel="icon" href="icon-192.png"><link rel="apple-touch-icon" href="icon-192.png">
+<style>
+:root{--bg:#f6f3ec;--card:#fff;--ink:#1d2433;--mut:#6b7280;--pri:#6b1a1f;--acc:#e0aa3c;--line:#e3ddd0;--ok:#2e7d4f;--bad:#b3261e}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.45 system-ui,Segoe UI,Roboto,sans-serif;padding-bottom:70px}
+header{background:var(--pri);color:#fff;padding:12px 16px;position:sticky;top:0;z-index:5;display:flex;align-items:center;gap:10px}
+header h1{font-size:18px;margin:0;flex:1}header small{opacity:.75}
+main{max-width:720px;margin:0 auto;padding:14px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin:10px 0}
+.card h3{margin:0 0 6px;font-size:15px}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.sp{flex:1}
+.item{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--line);cursor:pointer}.item:last-child{border:0}
+.av{width:38px;height:38px;border-radius:50%;background:var(--pri);color:#fff;display:grid;place-items:center;font-weight:700;flex:none}
+.mut{color:var(--mut);font-size:13px}
+button,.btn{font:inherit;border:0;border-radius:9px;padding:9px 14px;background:var(--pri);color:#fff;cursor:pointer}
+button.sec{background:#e9e4d6;color:var(--ink)}button.bad{background:var(--bad)}button.sm{padding:5px 10px;font-size:13px}
+input,select,textarea{font:inherit;width:100%;padding:9px;border:1px solid var(--line);border-radius:9px;background:#fff;color:var(--ink)}
+label{display:block;font-size:13px;color:var(--mut);margin:8px 0 3px}
+.chk{display:flex;gap:8px;align-items:center;margin:10px 0;color:var(--ink);font-size:15px}.chk input{width:auto}
+nav{position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid var(--line);display:flex;padding-bottom:env(safe-area-inset-bottom)}
+nav a{flex:1;text-align:center;padding:8px 2px;font-size:11px;color:var(--mut);cursor:pointer}nav a b{display:block;font-size:20px;font-weight:400}nav a.on{color:var(--pri);font-weight:700}
+.pill{display:inline-block;border-radius:99px;padding:1px 9px;font-size:12px;background:#e9e4d6}.pill.ok{background:#dff3e3;color:var(--ok)}.pill.no{background:#fde0e0;color:var(--bad)}
+.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}.stat{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px 12px}.stat b{font-size:22px;display:block}
+.modal{position:fixed;inset:0;background:#0007;z-index:20;display:flex;align-items:flex-end;justify-content:center}.modal>div{background:var(--bg);width:100%;max-width:560px;max-height:92vh;overflow:auto;border-radius:16px 16px 0 0;padding:16px}
+table{border-collapse:collapse;width:100%;font-size:13px}td,th{border:1px solid var(--line);padding:4px 6px;text-align:center}th{background:#e9e4d6}td:first-child,th:first-child{text-align:left}
+.toast{position:fixed;left:50%;bottom:80px;transform:translateX(-50%);background:#222;color:#fff;padding:8px 16px;border-radius:99px;z-index:30}
+.lock{position:fixed;inset:0;background:var(--pri);color:#fff;z-index:50;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px}.lock input{max-width:200px;text-align:center;font-size:22px}
+@keyframes sp{0%{opacity:0;transform:translateY(8px)}18%{opacity:1;transform:none}78%{opacity:1}100%{opacity:0}}
+.splash{position:fixed;inset:0;background:var(--pri);color:#fff;z-index:60;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:24px;gap:18px}
+.splash .logo{width:84px;height:84px;border-radius:50%;background:var(--acc);color:var(--pri);display:grid;place-items:center;font:700 44px Georgia,serif}
+.splash h1{font:700 30px Georgia,serif;margin:0;animation:sp 4s ease both}.splash p{font-size:19px;line-height:1.4;max-width:320px;margin:0;animation:sp 7.5s ease both}.splash small{opacity:.6;position:absolute;bottom:24px}
+@media (prefers-reduced-motion:reduce){.splash h1,.splash p{animation:none}}
+@media print{header,nav,.noprint,button{display:none!important}body{background:#fff;padding:0}.card{border:0}}
+</style></head><body><div id=app></div>
+<script>
+const LM={en:['English',''],fr:['Français','en'],sw:['Swahili','en'],swc:['Swahili (Congo)','fr'],ln:['Lingala','fr']};const MINT=30;
+const T={
+en:{welcome:'Welcome to TheoApp',tagline:"Virtual management of the activities of Jehovah's Witnesses local congregations",tapSkip:'Tap to skip',admin:'Administrator',adminCode:'Administrator code',newAdminCode:'Create an administrator code (6+ characters)',unlock:'Unlock',lock:'Lock',translations:'Translations',addLang:'Add a language',langName:'Language name',fallbackLang:'When a word is missing, show',progress:'translated',opensAt:'A language opens automatically at {n} translated expressions.',langOpen:'Open',langHidden:'Hidden',missingOnly:'Missing only',reference:'Reference',delLang:'Delete language',adminHint:'Colour and translations are managed by the administrator.',back:'Back',expressions:'expressions',blankHint:'Leave empty to use the fallback.',colourT:'Colour of the app',colour:'Colour',demo:'Load sample data',reset:'Erase all data (tap twice)',app:'TheoApp',home:'Home',people:'People',reports:'Reports',meetings:'Meetings',settings:'Settings',
+ add:'Add',save:'Save',cancel:'Cancel',del:'Delete',edit:'Edit',search:'Search',name:'Name',phone:'Phone',group:'Group',none:'None',notes:'Notes',
+ pub:'Publisher',ap:'Auxiliary pioneer',rp:'Regular pioneer',baptized:'Baptized',unbap:'Unbaptized publisher',active:'Active',inactive:'Inactive',
+ type:'Category',newPub:'New publisher',noPubs:'No publishers yet. Tap Add.',groups:'Field service groups',newGroup:'New group name',
+ month:'Month',year:'Service year',shared:'Shared in ministry',studies:'Bible studies',hours:'Hours',credit:'Credit hours',remarks:'Remarks',
+ reported:'Reported',missing:'Missing',summary:'Congregation summary',reportsCount:'Reports',totalStudies:'Bible studies',totalHours:'Hours',
+ total:'Total',card:'Publisher record',print:'Print',avg:'Average',noReport:'No report yet this month',activeNow:'Active publishers',
+ meetingsT:'Meeting schedule',newMeeting:'New meeting',date:'Date',midweek:'Midweek meeting',weekend:'Weekend meeting',chairman:'Chairman',prayer:'Prayer',
+ treasures:'Treasures talk',reading:'Bible reading',part:'Part',wtReader:'Watchtower reader',talk:'Public talk',sound:'Sound',mics:'Microphones',attendant:'Attendant',
+ person:'Person',role:'Role',noMeet:'No meetings scheduled.',congName:'Congregation name',language:'Language',lang2:'Main language is English; others are secondary.',
+ pin:'PIN code (4+ digits, optional)',lockT:'Enter your PIN',wrong:'Wrong PIN',backup:'Backup',exportB:'Export backup',importB:'Import backup',
+ install:'Install the app',installHint:'In Chrome: menu ⋮ → Add to Home screen.',saved:'Saved',deleted:'Deleted',confirmDel:'Delete? Tap again to confirm.',
+ privacy:'Data stays on this device only. Make regular backups. Personal information is confidential.',imported:'Backup restored',badFile:'Invalid file',
+ empty:'—',months:['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'],upcoming:'Upcoming meetings',pubCount:'Publishers',
+ unreported:'Not yet reported',byType:'By category'},
+fr:{welcome:'Bienvenue sur TheoApp',tagline:"Gestion virtuelle des activités des assemblées locales des Témoins de Jéhovah",tapSkip:'Touchez pour passer',admin:'Administrateur',adminCode:'Code administrateur',newAdminCode:'Créez un code administrateur (6 caractères ou plus)',unlock:'Déverrouiller',lock:'Verrouiller',translations:'Traductions',addLang:'Ajouter une langue',langName:'Nom de la langue',fallbackLang:'Si un mot manque, afficher',progress:'traduits',opensAt:"Une langue s'ouvre automatiquement à {n} expressions traduites.",langOpen:'Ouverte',langHidden:'Masquée',missingOnly:'Manquantes seulement',reference:'Référence',delLang:'Supprimer la langue',adminHint:"La couleur et les traductions sont gérées par l'administrateur.",back:'Retour',expressions:'expressions',blankHint:'Laissez vide pour utiliser le texte de secours.',colourT:"Couleur de l'application",colour:'Couleur',app:'TheoApp',home:'Accueil',people:'Personnes',reports:'Rapports',meetings:'Réunions',settings:'Réglages',
+ add:'Ajouter',save:'Enregistrer',cancel:'Annuler',del:'Supprimer',edit:'Modifier',search:'Chercher',name:'Nom',phone:'Téléphone',group:'Groupe',none:'Aucun',notes:'Notes',
+ pub:'Proclamateur',ap:'Pionnier auxiliaire',rp:'Pionnier permanent',baptized:'Baptisé',unbap:'Proclamateur non baptisé',active:'Actif',inactive:'Inactif',
+ type:'Catégorie',newPub:'Nouveau proclamateur',noPubs:'Aucun proclamateur. Touchez Ajouter.',groups:'Groupes de prédication',newGroup:'Nom du nouveau groupe',
+ month:'Mois',year:'Année de service',shared:'A participé à la prédication',studies:'Études bibliques',hours:'Heures',credit:'Heures de crédit',remarks:'Remarques',
+ reported:'Rapporté',missing:'Manquant',summary:"Résumé de l'assemblée locale",reportsCount:'Rapports',totalStudies:'Études bibliques',totalHours:'Heures',
+ total:'Total',card:'Fiche de proclamateur',print:'Imprimer',avg:'Moyenne',noReport:'Pas encore de rapport ce mois',activeNow:'Proclamateurs actifs',
+ meetingsT:'Programme des réunions',newMeeting:'Nouvelle réunion',date:'Date',midweek:'Réunion de semaine',weekend:'Réunion de week-end',chairman:'Président',prayer:'Prière',
+ treasures:'Discours Joyaux',reading:'Lecture de la Bible',part:'Partie',wtReader:'Lecteur de La Tour de Garde',talk:'Discours public',sound:'Sonorisation',mics:'Micros',attendant:'Accueil',
+ person:'Personne',role:'Rôle',noMeet:'Aucune réunion programmée.',congName:"Nom de l'assemblée locale",language:'Langue',lang2:"La langue principale est l'anglais; les autres sont secondaires.",
+ pin:'Code PIN (4 chiffres ou plus, facultatif)',lockT:'Entrez votre PIN',wrong:'PIN incorrect',backup:'Sauvegarde',exportB:'Exporter la sauvegarde',importB:'Importer une sauvegarde',
+ install:"Installer l'application",installHint:"Dans Chrome : menu ⋮ → Ajouter à l'écran d'accueil.",saved:'Enregistré',deleted:'Supprimé',confirmDel:'Supprimer ? Touchez encore pour confirmer.',
+ privacy:"Les données restent sur cet appareil. Faites des sauvegardes régulières. Les informations personnelles sont confidentielles.",imported:'Sauvegarde restaurée',badFile:'Fichier invalide',
+ empty:'—',months:['janv','févr','mars','avr','mai','juin','juil','août','sept','oct','nov','déc'],upcoming:'Prochaines réunions',pubCount:'Proclamateurs',
+ unreported:'Pas encore rapporté',byType:'Par catégorie'},
+sw:{colour:'Rangi',app:'TheoApp',home:'Mwanzo',people:'Watu',reports:'Ripoti',meetings:'Mikutano',settings:'Mipangilio',
+ add:'Ongeza',save:'Hifadhi',cancel:'Ghairi',del:'Futa',edit:'Hariri',search:'Tafuta',name:'Jina',phone:'Simu',group:'Kikundi',none:'Hakuna',notes:'Maelezo',
+ pub:'Mhubiri',ap:'Painia msaidizi',rp:'Painia wa kawaida',baptized:'Amebatizwa',unbap:'Mhubiri asiyebatizwa',active:'Anayefanya kazi',inactive:'Asiyefanya kazi',
+ type:'Aina',newPub:'Mhubiri mpya',noPubs:'Bado hakuna wahubiri. Bonyeza Ongeza.',groups:'Vikundi vya kuhubiri',newGroup:'Jina la kikundi kipya',
+ month:'Mwezi',year:'Mwaka wa huduma',shared:'Alishiriki huduma',studies:'Mafunzo ya Biblia',hours:'Saa',credit:'Saa za mkopo',remarks:'Maoni',
+ reported:'Ameripoti',missing:'Hajaripoti',summary:'Muhtasari wa kutaniko',reportsCount:'Ripoti',totalStudies:'Mafunzo ya Biblia',totalHours:'Saa',
+ total:'Jumla',card:'Kadi ya mhubiri',print:'Chapisha',avg:'Wastani',noReport:'Bado hakuna ripoti mwezi huu',activeNow:'Wahubiri wanaofanya kazi',
+ meetingsT:'Ratiba ya mikutano',newMeeting:'Mkutano mpya',date:'Tarehe',midweek:'Mkutano wa katikati ya wiki',weekend:'Mkutano wa mwisho wa wiki',chairman:'Mwenyekiti',prayer:'Sala',
+ treasures:'Hotuba ya Hazina',reading:'Usomaji wa Biblia',part:'Sehemu',wtReader:'Msomaji wa Mnara wa Mlinzi',talk:'Hotuba ya hadharani',sound:'Sauti',mics:'Maikrofoni',attendant:'Mhudumu wa mlangoni',
+ person:'Mtu',role:'Jukumu',noMeet:'Hakuna mikutano iliyopangwa.',congName:'Jina la kutaniko',language:'Lugha',lang2:'Lugha kuu ni Kiingereza; nyingine ni za ziada.',
+ pin:'Nambari ya siri PIN (tarakimu 4 au zaidi, si lazima)',lockT:'Weka PIN yako',wrong:'PIN si sahihi',backup:'Nakala rudufu',exportB:'Hamisha nakala rudufu',importB:'Leta nakala rudufu',
+ install:'Sakinisha programu',installHint:'Kwenye Chrome: menyu ⋮ → Ongeza kwenye skrini ya mwanzo.',saved:'Imehifadhiwa',deleted:'Imefutwa',confirmDel:'Futa? Bonyeza tena kuthibitisha.',
+ privacy:'Data inabaki kwenye simu hii tu. Fanya nakala rudufu mara kwa mara. Taarifa za watu ni siri.',imported:'Nakala imerudishwa',badFile:'Faili si sahihi',
+ empty:'—',months:['Jan','Feb','Mac','Apr','Mei','Jun','Jul','Ago','Sep','Okt','Nov','Des'],upcoming:'Mikutano ijayo',pubCount:'Wahubiri',
+ unreported:'Bado hajaripoti',byType:'Kwa aina'},
+swc:{colour:'Rangi',app:'TheoApp',home:'Mwanzo',people:'Watu',reports:'Rapport',meetings:'Mikutano',settings:'Mipangilio',
+ add:'Ongeza',save:'Hifadhi',cancel:'Ghairi',del:'Futa',edit:'Hariri',search:'Tafuta',name:'Jina',phone:'Simu',group:'Kikundi',none:'Hapana',notes:'Maelezo',
+ pub:'Muhubiri',ap:'Mupainia msaidizi',rp:'Mupainia wa kawaida',baptized:'Amebatizwa',unbap:'Mhubiri asiyebatizwa',active:'Anayefanya kazi',inactive:'Asiyefanya kazi',
+ type:'Aina',newPub:'Muhubiri mupya',noPubs:'Bado hakuna wahubiri. Bonyeza Ongeza.',groups:'Vikundi vya kuhubiri',newGroup:'Jina la kikundi kipya',
+ month:'Mwezi',year:'Mwaka wa huduma',shared:'Alishiriki huduma',studies:'Mafunzo ya Biblia',hours:'Masaa',credit:'Saa za mkopo',remarks:'Maoni',
+ reported:'Ameripoti',missing:'Hajaripoti',summary:'Muhtasari wa kutaniko',reportsCount:'Rapport',totalStudies:'Mafunzo ya Biblia',totalHours:'Masaa',
+ total:'Jumla',card:'Kadi ya mhubiri',print:'Chapisha',avg:'Wastani',noReport:'Bado hakuna ripoti mwezi huu',activeNow:'Wahubiri wanaofanya kazi',
+ meetingsT:'Ratiba ya mikutano',newMeeting:'Mkutano mpya',date:'Tarehe',midweek:'Mkutano wa katikati ya wiki',weekend:'Mkutano wa mwisho wa wiki',chairman:'Mwenyekiti',prayer:'Sala',
+ treasures:'Hotuba ya Hazina',reading:'Usomaji wa Biblia',part:'Sehemu',wtReader:'Msomaji wa Mnara wa Mlinzi',talk:'Hotuba ya hadharani',sound:'Sauti',mics:'Maikrofoni',attendant:'Mhudumu wa mlangoni',
+ person:'Mtu',role:'Jukumu',noMeet:'Hakuna mikutano iliyopangwa.',congName:'Jina la kutaniko',language:'Lugha',lang2:'Lugha kuu ni Kiingereza; nyingine ni za ziada.',
+ pin:'Nambari ya siri PIN (tarakimu 4 au zaidi, si lazima)',lockT:'Weka PIN yako',wrong:'PIN si sahihi',backup:'Nakala rudufu',exportB:'Hamisha nakala rudufu',importB:'Leta nakala rudufu',
+ install:'Sakinisha programu',installHint:'Kwenye Chrome: menyu ⋮ → Ongeza kwenye skrini ya mwanzo.',saved:'Imehifadhiwa',deleted:'Imefutwa',confirmDel:'Futa? Bonyeza tena kuthibitisha.',
+ privacy:'Data inabaki kwenye simu hii tu. Fanya nakala rudufu mara kwa mara. Taarifa za watu ni siri.',imported:'Nakala imerudishwa',badFile:'Faili si sahihi',
+ empty:'—',months:['Jan','Feb','Mac','Apr','Mei','Jun','Jul','Ago','Sep','Okt','Nov','Des'],upcoming:'Mikutano ijayo',pubCount:'Wahubiri',
+ unreported:'Bado hajaripoti',byType:'Kwa aina'},
+ln:{colour:'Langi',app:'TheoApp',home:'Ebandeli',people:'Bato',reports:'Rapo',meetings:'Makita',settings:'Bobongisi',
+ add:'Bakisa',save:'Bomba',cancel:'Tika',del:'Kolongola',edit:'Bongola',search:'Luka',name:'Kombo',phone:'Telefoni',group:'Etuluku',none:'Moko te',notes:'Maloba',
+ pub:'Mosakoli',ap:'Mobongisi ya mbala moko',rp:'Mobongisi ya libela',baptized:'Abatisami',unbap:'Mosakoli abatisami te',active:'Azali na misala',inactive:'Azali na misala te',
+ type:'Lolenge',newPub:'Mosakoli ya sika',noPubs:'Mosakoli moko te naino. Fina Bakisa.',groups:'Bituluku ya kosakola',newGroup:'Kombo ya etuluku ya sika',
+ month:'Sanza',year:'Mobu ya mosala',shared:'Akotaki na mosala ya kosakola',studies:'Boyekoli ya Biblia',hours:'Ngonga',credit:'Ngonga ya credit',remarks:'Maloba mikuse',
+ reported:'Apesi rapo',missing:'Apesi rapo naino te',summary:'Mokuse ya lisanga',reportsCount:'Rapo',totalStudies:'Boyekoli ya Biblia',totalHours:'Ngonga',
+ total:'Total',card:'Karte ya mosakoli',print:'Banda',avg:'Moyenne',noReport:'Rapo moko te naino na sanza oyo',activeNow:'Basakoli bazali na misala',
+ meetingsT:'Programme ya makita',newMeeting:'Likita ya sika',date:'Mokolo',midweek:'Likita ya na katikati ya poso',weekend:'Likita ya nsuka ya poso',chairman:'President',prayer:'Libondeli',
+ treasures:'Lisolo ya Biloko ya motuya',reading:'Kotanga Biblia',part:'Eteni',wtReader:'Motangi ya Mongongo ya Mokengeli',talk:'Lisolo ya bato nyonso',sound:'Mongongo',mics:'Micro',attendant:'Mokotisi ya bato',
+ person:'Moto',role:'Mosala',noMeet:'Likita moko te ebongisami.',congName:'Kombo ya lisanga',language:'Lokota',lang2:'Lokota monene ezali Lingele; mosusu ezali ya mibale.',
+ pin:'Code PIN (motango 4 to koleka, esengeli te)',lockT:'Tanga PIN na yo',wrong:'PIN ezali malamu te',backup:'Kobomba mpo na libela',exportB:'Longola backup',importB:'Zongisa backup',
+ install:'Tia application',installHint:'Na Chrome: menu ⋮ → Bakisa na ecran ya ebandeli.',saved:'Ebombami',deleted:'Elongolami',confirmDel:'Kolongola? Fina lisusu mpo na kondima.',
+ privacy:'Makambo ezali kaka na telefoni oyo. Bomba yango mbala na mbala. Makambo ya bato ezali na nkita.',imported:'Backup ezongisami',badFile:'Fichier ezali malamu te',
+ empty:'—',months:['Yan','Feb','Mar','Apr','Mei','Yun','Yul','Ago','Sep','Okt','Nov','Des'],upcoming:'Makita ekoya',pubCount:'Basakoli',
+ unreported:'Apesi rapo naino te',byType:'Na lolenge'}};
+const THEMES={charituri:['Charituri','#6b1a1f','#e0aa3c'],ocean:['Ocean','#1f3a5f','#f2c94c'],forest:['Forest','#1f5a3a','#e0b04a'],violet:['Violet','#4b2e83','#f0b429'],teal:['Teal','#0f6b6b','#f08a4b'],slate:['Slate','#2f3640','#f2c94c'],rose:['Rose','#a02855','#f6c177']};
+function applyTheme(){const th=THEMES[S.theme]||THEMES.charituri,r=document.documentElement.style;r.setProperty('--pri',th[1]);r.setProperty('--acc',th[2]);const m=document.querySelector('meta[name=theme-color]');if(m)m.content=th[1]}
+const SB_URL='https://nhbjqfdrzemuildugiku.supabase.co',SB_KEY='sb_publishable_0xTLRBamm08VxwNt1UHTwg_kySEWIt-',MAILDOM='theoapp.app';
+const KEY='theoapp.v3',AKEY='theoapp.auth',SNAP='theoapp.snap';
+const ls=(k,v)=>{try{if(v===undefined)return JSON.parse(localStorage.getItem(k));if(v===null)localStorage.removeItem(k);else localStorage.setItem(k,JSON.stringify(v))}catch(e){}return null};
+let S;const DEF=()=>({lang:'en',theme:'charituri',langs:[],tr:{}});
+const RT=()=>({groups:[],pubs:[],reports:{},meetings:[],users:[],pioreq:[],invites:[],cg:null,me:null,owner:false,offline:false,state:null,loading:true,busy:false,ov:null});
+function load(){const d=ls(KEY)||{};return Object.assign(DEF(),RT(),{lang:d.lang||'en',theme:d.theme||'charituri',langs:d.langs||[],tr:d.tr||{}})}
+function persist(){ls(KEY,{lang:S.lang,theme:S.theme,langs:S.langs,tr:S.tr})}
+S=load();
+/* ----- connexion a Supabase (sans bibliotheque) ----- */
+let A=ls(AKEY);
+function setAuth(d){A=d?{access_token:d.access_token,refresh_token:d.refresh_token,expires_at:d.expires_at||Math.floor(Date.now()/1000)+(d.expires_in||3600),uid:(d.user&&d.user.id)||(A&&A.uid)}:null;ls(AKEY,A)}
+async function raw(path,o){o=o||{};const h=Object.assign({apikey:SB_KEY,'Content-Type':'application/json'},o.headers||{});
+ if(o.auth!==false&&A&&A.access_token)h.Authorization='Bearer '+A.access_token;
+ let r;try{r=await fetch(SB_URL+path,{method:o.method||'GET',headers:h,body:o.body!==undefined?JSON.stringify(o.body):undefined})}catch(e){const x=new Error('network');x.net=true;throw x}
+ const tx=await r.text();let d=null;try{d=tx?JSON.parse(tx):null}catch(e){d=tx}
+ if(!r.ok){const m=(d&&(d.message||d.msg||d.error_description||d.error))||('HTTP '+r.status);const x=new Error(m);x.status=r.status;x.code=d&&(d.code||d.error_code);throw x}
+ return d}
+let _rf=null;
+function refresh(){if(_rf)return _rf;_rf=(async()=>{try{const d=await raw('/auth/v1/token?grant_type=refresh_token',{method:'POST',body:{refresh_token:A.refresh_token},auth:false});setAuth(d)}catch(e){if(e.status>=400&&e.status<500)setAuth(null);throw e}finally{_rf=null}})();return _rf}
+async function api(path,o){o=o||{};
+ if(o.auth!==false&&A&&A.expires_at&&A.expires_at-60<Date.now()/1000)await refresh();
+ try{return await raw(path,o)}catch(e){if(e.status===401&&o.auth!==false&&A&&A.refresh_token&&!o._r){await refresh();return raw(path,Object.assign({},o,{_r:1}))}throw e}}
+const rest=(p,o)=>api('/rest/v1/'+p,o);
+const rpc=(n,a)=>api('/rest/v1/rpc/'+n,{method:'POST',body:a||{}});
+const MIN={Prefer:'return=minimal'};
+const ins=(t,row,h)=>rest(t,{method:'POST',body:row,headers:Object.assign({},MIN,h||{})});
+async function updw(t,filter,row){const r=await rest(t+'?'+filter,{method:'PATCH',body:row,headers:{Prefer:'return=representation'}});if(Array.isArray(r)&&!r.length)throw new Error(t==='x'?'':'Action refusee');return r}
+const del=(t,filter)=>rest(t+'?'+filter,{method:'DELETE',headers:MIN});
+async function pageAll(path){let out=[],i=0;for(;;){const r=await rest(path,{headers:{Range:i+'-'+(i+999),'Range-Unit':'items'}});out=out.concat(r||[]);if(!r||r.length<1000)break;i+=1000}return out}
+/* ----- comptes : identifiant + numero d'assemblee -> adresse technique (jamais d'e-mail reel) ----- */
+const emailOf=(num,id)=>id.toLowerCase()+'@c'+num.toLowerCase()+'.'+MAILDOM;
+async function signUp(email,pwd){const d=await raw('/auth/v1/signup',{method:'POST',body:{email,password:pwd},auth:false});if(!d||!d.access_token){const x=new Error('CONFIRM_ON');throw x}setAuth(d)}
+async function signIn(email,pwd){const d=await raw('/auth/v1/token?grant_type=password',{method:'POST',body:{email,password:pwd},auth:false});setAuth(d)}
+async function ensureAuth(email,pwd){try{await signUp(email,pwd)}catch(e){if(/registered|already|exists/i.test(e.message||'')){await signIn(email,pwd)}else throw e}}
+async function signOut(){try{if(A)await raw('/auth/v1/logout',{method:'POST'})}catch(e){}setAuth(null);ls(SNAP,null);const k=['lang','theme','langs','tr'].reduce((o,x)=>(o[x]=S[x],o),{});S=Object.assign(DEF(),RT(),k);S.loading=false}
+const OKNUM=/^[a-z0-9]{1,10}$/,okId=i=>/^[a-z0-9](?:[a-z0-9._-]{1,28})[a-z0-9]$/.test(i)&&!/[._-]{2}/.test(i);
+function errMsg(e){const m=(e&&e.message)||'';
+ if(e&&e.net)return t('netErr');
+ if(m==='CONFIRM_ON')return 'Configuration: Supabase > Authentication > Sign In / Providers > Email > désactiver « Confirm email ».';
+ if(/Invalid login/i.test(m))return t('badLogin');
+ if(/already registered|already been registered/i.test(m))return t('idTaken');
+ if(/password/i.test(m)&&/(least|short|weak|characters)/i.test(m))return t('fillAll');
+ if((e&&e.status===429)||/rate limit|too many/i.test(m))return t('rateErr');
+ if(/existe deja/i.test(m)&&/numero/i.test(m))return t('numTaken');
+ if(/Identifiant deja utilise/i.test(m))return t('idTaken');
+ if(/Numero ou code/i.test(m))return t('badCong');
+ return m||'Error'}
+/* ----- donnees de l'assemblee (lecture) ----- */
+const F2D={wt:'wt_conductor',lcm:'lcm_overseer',group:'group_overseer'},D2F={wt_conductor:'wt',lcm_overseer:'lcm',group_overseer:'group'};
+const fA=a=>(a||[]).map(x=>D2F[x]||x),fD=a=>(a||[]).map(x=>F2D[x]||x);
+const PT={aux:'ap',reg:'rp',spec:'sp'},PD={ap:'aux',rp:'reg',sp:'spec'};
+async function pull(){
+ const ctx=await rpc('my_context');
+ if(!ctx||!ctx.profile){S.owner=!!(await rpc('is_owner'));S.me=null;S.cg=null;S.state='nocong';return S.state}
+ const p=ctx.profile;S.owner=!!ctx.owner;S.me={id:p.id,identifier:p.identifier,name:p.full_name,category:p.category,functions:fA(p.functions),status:p.status};
+ if(p.status!=='active'){S.cg=null;S.state=p.status;return S.state}
+ const c=ctx.congregation||{},st=ctx.settings||{},nz=v=>v==null?'':+v;
+ S.cg={id:c.id,name:c.name,number:c.number,city:c.city||'',join:c.join_code,hours:{ap:nz(st.hours_aux),rp:nz(st.hours_reg),sp:nz(st.hours_spec)}};
+ const adm=S.me.functions.some(f=>f==='coordinator'||f==='secretary');
+ const since=(curSY()-2)+'-09',d90=new Date(Date.now()-90*864e5).toISOString().slice(0,10);
+ const R=await Promise.all([rest('groups?select=id,name,overseer_id&order=name'),pageAll('publishers?select=*&order=full_name'),pageAll('reports?select=*&ym=gte.'+since),
+  rest('meetings?select=id,mdate,kind,meeting_items(role,person_id,pos)&mdate=gte.'+d90+'&order=mdate.desc'),rest('profiles?select=id,identifier,full_name,category,functions,status&order=full_name'),
+  rest('pioneer_requests?select=id,publisher_id,kind,status&status=eq.pending'),adm?rpc('list_invitations'):Promise.resolve([])]);
+ S.groups=(R[0]||[]).map(g=>({id:g.id,name:g.name,overseer:g.overseer_id||''}));
+ S.pubs=(R[1]||[]).map(x=>({id:x.id,name:x.full_name,phone:x.phone||'',type:PT[x.pioneer]||'pub',cat:x.category,baptized:x.baptized!==false,active:x.active!==false,group:x.group_id||'',notes:x.notes||'',uid:x.user_id||''}));
+ S.reports={};(R[2]||[]).forEach(r=>{const n=v=>+v?String(+v):'';S.reports[r.publisher_id+'|'+r.ym]={shared:r.shared,studies:n(r.studies),hours:n(r.hours),credit:n(r.credit),remarks:r.remarks||'',status:r.status}});
+ S.meetings=(R[3]||[]).map(m=>({id:m.id,date:m.mdate,kind:m.kind,items:(m.meeting_items||[]).sort((a,b)=>a.pos-b.pos).map(i=>({role:i.role,person:i.person_id||''}))}));
+ S.users=(R[4]||[]).map(u=>({id:u.id,identifier:u.identifier,name:u.full_name,category:u.category,functions:fA(u.functions),status:u.status}));
+ S.pioreq=(R[5]||[]).map(r=>({id:r.id,pub:r.publisher_id,kind:PT[r.kind]||r.kind,status:r.status}));
+ S.invites=(R[6]||[]).map(v=>({identifier:v.identifier,name:v.full_name,category:v.category}));
+ S.state='ok';S.offline=false;
+ ls(SNAP,{me:S.me,cg:S.cg,owner:S.owner,groups:S.groups,pubs:S.pubs,reports:S.reports,meetings:S.meetings,users:S.users,pioreq:S.pioreq,invites:S.invites,state:'ok'});
+ return S.state}
+async function loadCfg(){try{const r=await rest('app_config?select=theme,langs,tr&id=eq.1',{auth:false});if(r&&r[0]){S.theme=r[0].theme||S.theme;S.langs=r[0].langs||[];S.tr=r[0].tr||{};persist();applyTheme()}}catch(e){}}
+let _cf=null;function saveCfg(){clearTimeout(_cf);_cf=setTimeout(()=>wr(()=>rest('app_config?id=eq.1',{method:'PATCH',body:{theme:S.theme,langs:S.langs,tr:S.tr,updated_at:new Date().toISOString()},headers:MIN})),700)}
+const isOwner=()=>S.owner;
+const U=()=>S.me;
+const CG=()=>S.cg;
+const fns=()=>(S.me&&S.me.functions)||[];
+const isAdm=()=>fns().some(f=>f==='coordinator'||f==='secretary');
+const isCom=()=>isAdm()||fns().includes('preaching');
+const myPub=()=>{const u=U();return u?S.pubs.find(p=>p.uid===u.id):null};
+const myGroupIds=()=>{const m=myPub();return m?S.groups.filter(g=>g.overseer===m.id).map(g=>g.id):[]};
+const vp=()=>{if(isCom())return S.pubs;const m=myPub(),gs=myGroupIds();return S.pubs.filter(p=>(m&&p.id===m.id)||(p.group&&gs.includes(p.group)))};
+const canMeet=()=>isAdm()||fns().includes('lcm')||fns().includes('wt');
+/* ecriture : on met a jour l'ecran tout de suite, puis on envoie ; en cas d'echec on recharge */
+const guard=()=>{if(S.offline){toast(t('offlineMsg'));return false}return true};
+async function wr(fn){try{await fn()}catch(e){toast(errMsg(e));await sync(true)}}
+function canRerender(){const a=document.activeElement;return !document.getElementById('modal')&&!(a&&/^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName))}
+async function sync(force){if(!A||S.state!=='ok'||S.busy)return;try{await pull()}catch(e){if(e.net)S.offline=true;else if(e.status===401||e.status===403){await signOut();gate='login';gmsg=t('sessionEnd');render();return}}if(force||canRerender())render()}
+let gate='login',gmsg='';
+function langs(){const a=Object.keys(LM).map(c=>({code:c,name:LM[c][0],fb:LM[c][1],built:true}));(S.langs||[]).forEach(l=>a.push({code:l.code,name:l.name,fb:l.fb||'en',built:false}));return a}
+function getL(c){return langs().find(l=>l.code===c)}
+function look(c,k){const v=S.tr&&S.tr[c]&&S.tr[c][k];if(v!=null&&v!=='')return v;const b=T[c]&&T[c][k];return b!=null&&b!==''?b:null}
+function tr(c,k,d){d=d||0;const v=look(c,k);if(v!=null)return v;const l=getL(c);if(l&&l.fb&&d<4)return tr(l.fb,k,d+1);return T.en[k]!=null?T.en[k]:k}
+const t=k=>tr(S.lang,k);
+const tKeys=()=>Object.keys(T.en).filter(k=>k!=='months');
+const cnt=c=>tKeys().filter(k=>look(c,k)!=null).length;
+function openLangs(){return langs().filter(l=>l.code==='en'||l.code==='fr'||cnt(l.code)>=MINT)}
+let stage=0,sub=null,adminOn=false,trMiss=false,trQ='';
+const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const uid=()=>crypto.randomUUID?crypto.randomUUID():'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g,c=>{const r=Math.random()*16|0;return(c==='x'?r:r&3|8).toString(16)});
+const $=s=>document.querySelector(s);
+let tab='home',q='',unlocked=false,rm=null,ry=null,openCard=null,delArm=null;
+function nowYM(){const d=new Date();return[d.getFullYear(),d.getMonth()+1]}
+function svcYearOf(y,m){return m>=9?y:y-1}
+function curSY(){const[y,m]=nowYM();return svcYearOf(y,m)}
+function ymKey(y,m){return y+'-'+String(m).padStart(2,'0')}
+function syMonths(sy){const a=[];for(let m=9;m<=12;m++)a.push([sy,m]);for(let m=1;m<=8;m++)a.push([sy+1,m]);return a}
+function rep(pid,y,m){return S.reports[pid+'|'+ymKey(y,m)]}
+function setRep(pid,y,m,r){const k=pid+'|'+ymKey(y,m);if(r)S.reports[k]=r;else delete S.reports[k]}
+function toast(m){const e=document.createElement('div');e.className='toast';e.textContent=m;document.body.appendChild(e);setTimeout(()=>e.remove(),1800)}
+function typeLabel(p){return t(p.type||'pub')}
+function groupName(id){const g=S.groups.find(x=>x.id===id);return g?g.name:t('none')}
+function pubName(id){const p=S.pubs.find(x=>x.id===id);return p?p.name:''}
+function isPioneer(p){return p.type==='ap'||p.type==='rp'||p.type==='sp'}
+function fmtDate(s){if(!s)return'';const d=new Date(s+'T00:00:00');return d.toLocaleDateString(S.lang==='en'?'en':'fr',{weekday:'short',day:'numeric',month:'short',year:'numeric'})}
+/* views */
+function render(){
+ if(stage<2){const w=stage===0;$('#app').innerHTML=`<div class=splash onclick="nextStage()"><div class=logo>T</div>${w?`<h1>${esc(t('welcome'))}</h1>`:`<p>${esc(t('tagline'))}</p>`}<small>${t('tapSkip')}</small></div>`;return}
+ if(S.loading){$('#app').innerHTML=`<div class=splash style="background:var(--pri)"><div class=logo>T</div><div style="opacity:.8">…</div></div>`;return}
+ if(!A||!S.state)return renderGate();
+ if(S.state==='nocong'){$('#app').innerHTML=`<header><h1>TheoApp <small>${t('roleOwner')}</small></h1><button class="sm sec" onclick="logout()">${t('logout')}</button></header><main>${ownerPage()}</main>`;applyTheme();return}
+ if(!openLangs().some(l=>l.code===S.lang))S.lang='en';document.documentElement.lang=['en','fr','sw','ln'].includes(S.lang)?S.lang:S.lang==='swc'?'sw':'en';applyTheme();
+ const tabs=[['home','⌂',t('home')],['people','☺',t('people')],['reports','✎',t('reports')],['meetings','▤',t('meetings')],['settings','⚙',t('settings')]];
+ const body={home:vHome,people:vPeople,reports:vReports,meetings:vMeetings,settings:vSettings}[tab]();
+ $('#app').innerHTML=`<header><h1>TheoApp <small>${esc((CG()||{}).name||'')}</small></h1><button class="sm sec" onclick="sync(true);toast(t('refreshing'))" title="${esc(t('refresh'))}">↻</button></header>${S.offline?`<div style="background:#fde0e0;color:var(--bad);padding:6px 16px;font-size:13px">${t('offlineMsg')}</div>`:''}<main>${body}</main><nav>${tabs.map(x=>`<a class="${tab===x[0]?'on':''}" onclick="go('${x[0]}')"><b>${x[1]}</b>${x[2]}</a>`).join('')}</nav>`}
+function go(x){sub=null;tab=x;openCard=null;q='';render();scrollTo(0,0)}
+function vHome(){
+ const[y,m]=nowYM(),act=vp().filter(p=>p.active!==false),done=act.filter(p=>rep(p.id,y,m)),miss=act.filter(p=>!rep(p.id,y,m));
+ const up=S.meetings.filter(x=>x.date>=new Date().toISOString().slice(0,10)).sort((a,b)=>a.date.localeCompare(b.date)).slice(0,3);
+ return `<div class=grid><div class=stat><b>${act.length}</b>${t('activeNow')}</div><div class=stat><b>${done.length}/${act.length}</b>${t('reported')} · ${t('months')[m-1]}</div></div>
+ <div class=card><h3>${t('unreported')} · ${t('months')[m-1]} ${y}</h3>${miss.length?miss.slice(0,12).map(p=>`<div class=item onclick="tab='reports';rm=[${y},${m}];openRep('${p.id}');render()"><div class=av>${esc(p.name[0]||'?')}</div><div class=sp>${esc(p.name)}<div class=mut>${esc(groupName(p.group))}</div></div><span class="pill no">${t('missing')}</span></div>`).join(''):`<div class=mut>✓</div>`}</div>
+ <div class=card><h3>${t('upcoming')}</h3>${up.length?up.map(x=>`<div class=item onclick="go('meetings')"><div class=sp><b>${fmtDate(x.date)}</b><div class=mut>${t(x.kind==='wk'?'weekend':'midweek')}</div></div></div>`).join(''):`<div class=mut>${t('noMeet')}</div>`}</div>`}
+function vPeople(){
+ const l=vp().filter(p=>!q||p.name.toLowerCase().includes(q.toLowerCase())).sort((a,b)=>a.name.localeCompare(b.name));
+ return `<div class=row><input id=qIn placeholder="${t('search')}" value="${esc(q)}" oninput="q=this.value;keepRender('qIn')">${isCom()?`<button onclick="pubForm()">+ ${t('add')}</button>`:''}</div>
+ <div class=card>${l.length?l.map(p=>`<div class=item onclick="pubCard('${p.id}')"><div class=av>${esc(p.name[0]||'?')}</div><div class=sp>${esc(p.name)}<div class=mut>${esc(typeLabel(p))} · ${esc(groupName(p.group))}</div></div>${p.active===false?`<span class="pill no">${t('inactive')}</span>`:''}</div>`).join(''):`<div class=mut>${t('noPubs')}</div>`}</div>
+ ${isCom()?`<div class=card><h3>${t('groups')}</h3>${S.groups.map(g=>`<div class=item><div class=sp>${esc(g.name)} <span class=mut>(${S.pubs.filter(p=>p.group===g.id).length})${g.overseer?' · '+esc(pubName(g.overseer)):''}</span></div><button class="sm sec" onclick="groupForm('${g.id}')">${t('edit')}</button></div>`).join('')}
+ <div class=row style="margin-top:8px"><input id=gIn placeholder="${t('newGroup')}"><button class=sm onclick="addGroup()">${t('add')}</button></div></div>`:''}`}
+function keepRender(id){const el=$('#'+id),pos=el.selectionStart;render();const n=$('#'+id);n.focus();n.setSelectionRange(pos,pos)}
+function addGroup(){const v=$('#gIn').value.trim();if(!v||!guard())return;const g={id:uid(),name:v,overseer:''};S.groups.push(g);render();wr(()=>ins('groups',{id:g.id,congregation_id:S.cg.id,name:v}))}
+function delGroup(id){if(delArm!==id){delArm=id;toast(t('confirmDel'));return}delArm=null;if(!guard())return;S.groups=S.groups.filter(g=>g.id!==id);S.pubs.forEach(p=>{if(p.group===id)p.group=''});render();wr(()=>del('groups','id=eq.'+id))}
+function modal(h){closeM();const d=document.createElement('div');d.className='modal';d.id='modal';d.innerHTML='<div>'+h+'</div>';d.onclick=e=>{if(e.target===d)closeM()};document.body.appendChild(d)}
+function closeM(){const m=$('#modal');if(m)m.remove()}
+function pubForm(id){const p=S.pubs.find(x=>x.id===id)||{type:'pub',cat:'publisher',baptized:true,active:true,group:''};
+ modal(`<h3>${id?t('edit'):t('newPub')}</h3><label>${t('name')}</label><input id=fN value="${esc(p.name||'')}"><label>${t('phone')}</label><input id=fP type=tel value="${esc(p.phone||'')}">
+ <label>${t('type')}</label><select id=fT>${['pub','ap','rp','sp'].map(k=>`<option value=${k} ${p.type===k?'selected':''}>${t(k)}</option>`).join('')}</select>
+ <label>${t('cat')}</label><select id=fC>${['publisher','ms','elder'].map(k=>`<option value=${k} ${(p.cat||'publisher')===k?'selected':''}>${t('cat_'+k)}</option>`).join('')}</select>
+ <label>${t('group')}</label><select id=fG><option value="">${t('none')}</option>${S.groups.map(g=>`<option value=${g.id} ${p.group===g.id?'selected':''}>${esc(g.name)}</option>`).join('')}</select>
+ <label class=chk><input type=checkbox id=fB ${p.baptized!==false?'checked':''}> ${t('baptized')}</label><label class=chk><input type=checkbox id=fA ${p.active!==false?'checked':''}> ${t('active')}</label>
+ <label>${t('notes')}</label><textarea id=fNo rows=2>${esc(p.notes||'')}</textarea>
+ <div class=row style="margin-top:12px"><button onclick="savePub('${id||''}')">${t('save')}</button><button class=sec onclick="closeM()">${t('cancel')}</button><span class=sp></span>${id?`<button class="bad sm" onclick="delPub('${id}')">${t('del')}</button>`:''}</div>`)}
+function pubCard(id){openCard=id;ry=ry||curSY();const p=S.pubs.find(x=>x.id===id);
+ let th=0,ts=0,n=0;const rows=syMonths(ry).map(([y,m])=>{const r=rep(id,y,m);if(r){n+=r.shared?1:0;th+=+r.hours||0;ts+=+r.studies||0}
+  return `<tr onclick="openRep('${id}',${y},${m})" style="cursor:pointer"><td>${t('months')[m-1]} ${y}</td><td>${r?(r.shared?'✓':'✗'):''}</td><td>${r?r.studies||'':''}</td><td>${r&&(r.hours||r.credit)?(+r.hours||0)+(r.credit?'+'+r.credit:''):''}</td><td>${r?esc(r.remarks||''):''}</td></tr>`}).join('');
+ modal(`<div class=row><div class=av>${esc(p.name[0]||'?')}</div><div class=sp><h3 style="margin:0">${esc(p.name)}</h3><div class=mut>${esc(typeLabel(p))} · ${esc(groupName(p.group))}${p.phone?' · '+esc(p.phone):''}</div></div>${isCom()?`<button class="sm sec" onclick="pubForm('${id}')">${t('edit')}</button>`:''}</div>${pioBtns(p)}
+ <div class=row style="margin:10px 0"><label style="margin:0">${t('year')}</label><select style="width:auto" onchange="ry=+this.value;pubCard('${id}')">${[curSY()-2,curSY()-1,curSY(),curSY()+1].map(y=>`<option value=${y} ${y===ry?'selected':''}>${y}–${y+1}</option>`).join('')}</select></div>
+ <table><tr><th>${t('month')}</th><th>${t('shared')}</th><th>${t('studies')}</th><th>${t('hours')}</th><th>${t('remarks')}</th></tr>${rows}<tr><th>${t('total')}</th><th>${n}</th><th>${ts}</th><th>${th}</th><th></th></tr></table>
+ ${p.notes?`<p class=mut>${esc(p.notes)}</p>`:''}<div class=row style="margin-top:10px"><button class=sec onclick="closeM()">OK</button></div>`)}
+function vReports(){
+ if(!rm){const[y,m]=nowYM();rm=[y,m]}const[y,m]=rm;const sy=svcYearOf(y,m);
+ const act=vp().filter(p=>p.active!==false).sort((a,b)=>a.name.localeCompare(b.name));
+ const cats={pub:{n:0,s:0,h:0},ap:{n:0,s:0,h:0},rp:{n:0,s:0,h:0},sp:{n:0,s:0,h:0}};
+ act.forEach(p=>{const r=rep(p.id,y,m);if(r&&r.shared){const c=cats[p.type||'pub'];c.n++;c.s+=+r.studies||0;c.h+=+r.hours||0}});
+ const tot=['n','s','h'].map(k=>cats.pub[k]+cats.ap[k]+cats.rp[k]+cats.sp[k]);
+ const opts=syMonths(sy).map(([yy,mm])=>`<option value="${yy}-${mm}" ${yy===y&&mm===m?'selected':''}>${t('months')[mm-1]} ${yy}</option>`).join('');
+ return `<div class=row><select style="width:auto" onchange="rm=this.value.split('-').map(Number);render()">${opts}</select></div>
+ <div class=card><h3>${t('summary')} · ${t('months')[m-1]} ${y}</h3><table><tr><th>${t('byType')}</th><th>${t('reportsCount')}</th><th>${t('totalStudies')}</th><th>${t('totalHours')}</th></tr>
+ ${['pub','ap','rp','sp'].map(k=>`<tr><td>${t(k)}</td><td>${cats[k].n}</td><td>${cats[k].s}</td><td>${cats[k].h}</td></tr>`).join('')}<tr><th>${t('total')}</th><th>${tot[0]}</th><th>${tot[1]}</th><th>${tot[2]}</th></tr></table></div>
+ <div class=card>${act.length?act.map(p=>{const r=rep(p.id,y,m);return `<div class=item onclick="openRep('${p.id}')"><div class=av>${esc(p.name[0]||'?')}</div><div class=sp>${esc(p.name)}<div class=mut>${r?`${r.shared?'✓':'✗'} · ${r.studies||0} ${t('studies').toLowerCase()} · ${r.hours||0} h`:esc(typeLabel(p))}</div></div><span class="pill ${r?'ok':'no'}">${r?t('reported'):t('missing')}</span></div>`}).join(''):`<div class=mut>${t('noPubs')}</div>`}</div>`}
+function openRep(id,y,m){if(y==null){[y,m]=rm||nowYM()}const p=S.pubs.find(x=>x.id===id),r=rep(id,y,m)||{shared:true,studies:'',hours:'',credit:'',remarks:''};
+ modal(`<h3>${esc(p.name)}</h3><div class=mut>${t('months')[m-1]} ${y} · ${esc(typeLabel(p))}</div>
+ <label class=chk><input type=checkbox id=rS ${r.shared?'checked':''}> ${t('shared')}</label>
+ <label>${t('studies')}</label><input id=rB type=number min=0 inputmode=numeric value="${esc(r.studies)}">
+ ${isPioneer(p)&&hrsT(p)?`<div class=mut style="margin-top:6px">${t('hoursTarget')}: ${hrsT(p)} h</div>`:''}${isPioneer(p)?`<label>${t('hours')}</label><input id=rH type=number min=0 step=0.5 inputmode=decimal value="${esc(r.hours)}"><label>${t('credit')}</label><input id=rC type=number min=0 step=0.5 value="${esc(r.credit)}">`:`<label>${t('hours')}</label><input id=rH type=number min=0 step=0.5 inputmode=decimal value="${esc(r.hours)}">`}
+ <label>${t('remarks')}</label><input id=rR value="${esc(r.remarks||'')}">
+ <div class=row style="margin-top:12px"><button onclick="saveRep('${id}',${y},${m})">${t('save')}</button><button class=sec onclick="closeM()">${t('cancel')}</button><span class=sp></span>${rep(id,y,m)&&isCom()?`<button class="bad sm" onclick="clearRep('${id}',${y},${m})">${t('del')}</button>`:''}</div>`)}
+const ROLES={mid:['chairman','prayer','treasures','reading','part','part','part','prayer'],wk:['chairman','talk','wtReader','prayer','sound','mics','attendant']};
+function vMeetings(){
+ const l=[...S.meetings].sort((a,b)=>b.date.localeCompare(a.date));
+ return `<div class=row><h3 class=sp style="margin:0">${t('meetingsT')}</h3>${canMeet()?`<button onclick="meetForm()">+ ${t('newMeeting')}</button>`:''}</div>
+ ${l.length?l.map(x=>`<div class=card ${canMeet()?`onclick="meetForm('${x.id}')" style="cursor:pointer"`:''}><div class=row><b class=sp>${fmtDate(x.date)}</b><span class=pill>${t(x.kind==='wk'?'weekend':'midweek')}</span></div>${x.items.map(i=>`<div class=row><span class=mut style="width:48%">${t(i.role)}</span><span>${esc(pubName(i.person)||'—')}</span></div>`).join('')}</div>`).join(''):`<div class=card><div class=mut>${t('noMeet')}</div></div>`}`}
+function meetForm(id){const x=S.meetings.find(m=>m.id===id)||{date:new Date().toISOString().slice(0,10),kind:'mid',items:ROLES.mid.map(r=>({role:r,person:''}))};
+ const po=sel=>`<option value="">—</option>`+S.pubs.filter(p=>p.active!==false).sort((a,b)=>a.name.localeCompare(b.name)).map(p=>`<option value=${p.id} ${sel===p.id?'selected':''}>${esc(p.name)}</option>`).join('');
+ window._mi=JSON.parse(JSON.stringify(x.items));
+ modal(`<h3>${id?t('edit'):t('newMeeting')}</h3><label>${t('date')}</label><input id=mD type=date value="${x.date}"><label>${t('type')}</label>
+ <select id=mK onchange="mKind()"><option value=mid ${x.kind!=='wk'?'selected':''}>${t('midweek')}</option><option value=wk ${x.kind==='wk'?'selected':''}>${t('weekend')}</option></select>
+ <div id=mItems>${x.items.map((i,k)=>`<label>${t(i.role)}</label><select data-k=${k} onchange="_mi[this.dataset.k].person=this.value">${po(i.person)}</select>`).join('')}</div>
+ <div class=row style="margin-top:12px"><button onclick="saveMeet('${id||''}')">${t('save')}</button><button class=sec onclick="closeM()">${t('cancel')}</button><span class=sp></span>${id?`<button class="bad sm" onclick="delMeet('${id}')">${t('del')}</button>`:''}</div>`)}
+function mKind(){const k=$('#mK').value,d=$('#mD').value;const x={date:d,kind:k,items:ROLES[k].map(r=>({role:r,person:''}))};const id=null;
+ window._mi=x.items;const po=`<option value="">—</option>`+S.pubs.filter(p=>p.active!==false).map(p=>`<option value=${p.id}>${esc(p.name)}</option>`).join('');
+ $('#mItems').innerHTML=x.items.map((i,j)=>`<label>${t(i.role)}</label><select data-k=${j} onchange="_mi[this.dataset.k].person=this.value">${po}</select>`).join('')}
+function vTr(){const tot=tKeys().length;
+ return `<div class=row><button class="sm sec" onclick="sub=ownerBack();render()">← ${t('back')}</button><h3 class=sp style="margin:0">${t('translations')}</h3></div>
+ <div class=mut style="margin:6px 0">${t('opensAt').replace('{n}',MINT)}</div>
+ ${langs().map(l=>{const c=cnt(l.code),open=l.code==='en'||l.code==='fr'||c>=MINT;return `<div class=card onclick="sub='l:${l.code}';trQ='';trMiss=false;render()" style="cursor:pointer"><div class=row><b class=sp>${esc(l.name)}</b><span class="pill ${open?'ok':'no'}">${open?t('langOpen'):t('langHidden')}</span></div><div class=mut>${c}/${tot} ${t('progress')}${l.fb?' · '+t('fallbackLang')+': '+esc((getL(l.fb)||{}).name):''}</div><div style="height:6px;background:#e9e4d6;border-radius:9px;margin-top:6px"><div style="height:6px;width:${Math.round(100*c/tot)}%;background:var(--pri);border-radius:9px"></div></div></div>`}).join('')}
+ <div class=card><h3>${t('addLang')}</h3><label>${t('langName')}</label><input id=nlN><label>${t('fallbackLang')}</label><select id=nlF>${langs().map(l=>`<option value=${l.code} ${l.code==='fr'?'selected':''}>${esc(l.name)}</option>`).join('')}</select><div class=row style="margin-top:8px"><button onclick="addLang()">${t('add')}</button></div></div>`}
+function vTrLang(c){const l=getL(c);if(!l){sub='tr';return vTr()}const ks=tKeys().filter(k=>(!trMiss||look(c,k)==null)&&(!trQ||(k+' '+T.en[k]+' '+(T.fr[k]||'')+' '+(look(c,k)||'')).toLowerCase().includes(trQ.toLowerCase())));
+ const fbn=l.fb?(getL(l.fb)||{}).name:'';
+ return `<div class=row><button class="sm sec" onclick="sub='tr';render()">← ${t('back')}</button><h3 class=sp style="margin:0">${esc(l.name)}</h3>${l.built?'':`<button class="bad sm" onclick="delLang('${c}')">${t('delLang')}</button>`}</div>
+ <div class=mut style="margin:6px 0"><b id=trCnt>${cnt(c)}/${tKeys().length}</b> ${t('progress')}${fbn?' · '+t('fallbackLang')+': '+esc(fbn):''}. ${t('opensAt').replace('{n}',MINT)}</div>
+ <div class=row><input id=trQi placeholder="${t('search')}" value="${esc(trQ)}" oninput="trQ=this.value;keepRender('trQi')" style="flex:1"><label class=chk style="margin:0"><input type=checkbox ${trMiss?'checked':''} onchange="trMiss=this.checked;render()"> ${t('missingOnly')}</label></div>
+ ${ks.map(k=>{const own=(S.tr&&S.tr[c]&&S.tr[c][k])||(T[c]&&T[c][k])||'';return `<div class=card><div class=mut>${k}</div><div><b>EN</b> ${esc(T.en[k])}</div>${c!=='fr'&&T.fr[k]?`<div><b>FR</b> ${esc(T.fr[k])}</div>`:''}<input style="margin-top:6px" value="${esc(own)}" placeholder="${esc(tr(l.fb||'en',k))}" onchange="trSet('${c}','${k}',this.value)"></div>`}).join('')}
+ <div class=mut>${t('blankHint')}</div>`}
+let dip=null;addEventListener('beforeinstallprompt',e=>{e.preventDefault();dip=e;const b=$('#instBtn');if(b)b.innerHTML=`<button onclick="dip.prompt()">${t('install')}</button>`});
+if('serviceWorker'in navigator)addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
+function savePub(id){const name=$('#fN').value.trim();if(!name)return $('#fN').focus();if(!guard())return;
+ const o={name,phone:$('#fP').value.trim(),type:$('#fT').value,cat:$('#fC').value,group:$('#fG').value,baptized:$('#fB').checked,active:$('#fA').checked,notes:$('#fNo').value.trim()};
+ const row={full_name:o.name,phone:o.phone||null,category:o.cat,baptized:o.baptized,pioneer:PD[o.type]||null,group_id:o.group||null,active:o.active,notes:o.notes||null};
+ let nid=id;if(id){Object.assign(S.pubs.find(p=>p.id===id),o)}else{nid=uid();S.pubs.push({id:nid,...o,uid:''})}
+ closeM();toast(t('saved'));render();
+ wr(()=>id?updw('publishers','id=eq.'+id,row):ins('publishers',Object.assign({id:nid,congregation_id:S.cg.id},row)))}
+function delPub(id){const p=S.pubs.find(x=>x.id===id);if(p&&p.uid){toast(t('delLinked'));return}if(delArm!==id){delArm=id;toast(t('confirmDel'));return}delArm=null;if(!guard())return;S.pubs=S.pubs.filter(p=>p.id!==id);Object.keys(S.reports).forEach(k=>{if(k.startsWith(id+'|'))delete S.reports[k]});closeM();toast(t('deleted'));render();wr(()=>del('publishers','id=eq.'+id))}
+function saveRep(id,y,m){if(!guard())return;const g=i=>($('#'+i)||{}).value||'';const r={shared:$('#rS').checked,studies:g('rB'),hours:g('rH'),credit:g('rC'),remarks:g('rR'),status:'submitted'};setRep(id,y,m,r);
+ closeM();toast(t('saved'));if(openCard){pubCard(openCard)}render();
+ wr(()=>ins('reports?on_conflict=publisher_id,ym',{congregation_id:S.cg.id,publisher_id:id,ym:ymKey(y,m),shared:r.shared,studies:parseInt(r.studies)||0,hours:+r.hours||0,credit:+r.credit||0,remarks:r.remarks||null,status:'submitted',updated_by:S.me.id,updated_at:new Date().toISOString()},{Prefer:'resolution=merge-duplicates,return=minimal'}))}
+function clearRep(id,y,m){if(!guard())return;setRep(id,y,m,null);closeM();render();wr(()=>del('reports','publisher_id=eq.'+id+'&ym=eq.'+ymKey(y,m)))}
+function saveMeet(id){const o={date:$('#mD').value,kind:$('#mK').value,items:_mi};if(!o.date||!guard())return;let m;
+ if(id){m=S.meetings.find(x=>x.id===id);Object.assign(m,o)}else{m={id:uid(),...o};S.meetings.push(m)}
+ closeM();toast(t('saved'));render();
+ wr(async()=>{if(id)await updw('meetings','id=eq.'+id,{mdate:o.date,kind:o.kind});else await ins('meetings',{id:m.id,congregation_id:S.cg.id,mdate:o.date,kind:o.kind});
+  if(id)await del('meeting_items','meeting_id=eq.'+id);
+  await ins('meeting_items',o.items.map((it,k)=>({meeting_id:m.id,congregation_id:S.cg.id,role:it.role,person_id:it.person||null,pos:k})))})}
+function delMeet(id){if(delArm!==id){delArm=id;toast(t('confirmDel'));return}delArm=null;if(!guard())return;S.meetings=S.meetings.filter(m=>m.id!==id);closeM();render();wr(()=>del('meetings','id=eq.'+id))}
+function vSettings(){
+ if(sub==='mem'&&isAdm())return vMem();
+ if(S.owner&&(sub==='owner'||sub==='tr'||(sub&&sub.slice(0,2)==='l:')))return ownerPage();
+ const c=CG(),u=U();
+ return `<div class=card><div class=mut>${t('youAre')}</div><b>${esc(u.name)}</b><div class=mut>${esc(t('cat_'+u.category))}${u.functions.length?' · '+u.functions.map(f=>esc(t('fn_'+f))).join(', '):''}</div><div class=mut>${esc(c.name)} · ${t('congNumber')} ${esc(c.number)}</div><div class=row style="margin-top:10px"><button class=sec onclick="logout()">${t('logout')}</button></div></div>
+ <div class=card><label>${t('language')}</label><select onchange="S.lang=this.value;persist();render()">${openLangs().map(l=>`<option value=${l.code} ${S.lang===l.code?'selected':''}>${esc(l.name)}${l.code==='en'?' ★':''}</option>`).join('')}</select><div class=mut>${t('lang2')}</div></div>
+ ${isAdm()?`<div class=card><h3>${t('members')}</h3><div class=row><button onclick="sub='mem';render()">${t('members')} →</button></div><p class=mut>${t('congCode')}: <b>${esc(c.join)}</b></p></div>`:''}
+ ${S.owner?`<div class=card><h3>${t('roleOwner')}</h3><div class=row><button onclick="openOwner()">${t('ownerView')} →</button></div></div>`:''}
+ <div class=card><h3>${t('changeCode')}</h3><label>${t('newCode')}</label><input id=ccA type=password autocomplete=new-password><label>${t('codeConfirm')}</label><input id=ccB type=password autocomplete=new-password><div class=row style="margin-top:8px"><button onclick="chgCode()">${t('save')}</button></div></div>
+ <div class=card><h3>${t('install')}</h3><div class=mut>${t('installHint')}</div><div id=instBtn></div></div>`}
+function chgCode(){const a=$('#ccA').value,b=$('#ccB').value;if(a.length<6){toast(t('fillAll'));return}if(a!==b){toast(t('codesDiffer'));return}
+ api('/auth/v1/user',{method:'PUT',body:{password:a}}).then(()=>{toast(t('codeChanged'));$('#ccA').value='';$('#ccB').value=''}).catch(e=>toast(errMsg(e)))}
+function trSet(c,k,v){S.tr=S.tr||{};S.tr[c]=S.tr[c]||{};if(v.trim()==='')delete S.tr[c][k];else S.tr[c][k]=v.trim();persist();saveCfg();const e=$('#trCnt');if(e)e.textContent=cnt(c)+'/'+tKeys().length}
+function addLang(){const n=$('#nlN').value.trim();if(!n)return $('#nlN').focus();const code='x'+uid().slice(0,4);S.langs.push({code,name:n,fb:$('#nlF').value});persist();saveCfg();sub='l:'+code;render()}
+function delLang(c){if(delArm!==c){delArm=c;toast(t('confirmDel'));return}delArm=null;S.langs=S.langs.filter(l=>l.code!==c);delete S.tr[c];persist();saveCfg();sub='tr';render()}
+function setTheme(k){S.theme=k;persist();saveCfg();render()}
+/* ===== connexion, comptes, membres (en ligne) ===== */
+const FN=['coordinator','secretary','preaching','wt','lcm','group'];
+let gv={};
+function saveG(){['gN','gI','gF','gCn','gCi','gJ','gT'].forEach(i=>{const e=document.getElementById(i);if(e)gv[i]=e.value})}
+function renderGate(){saveG();
+ const m=gmsg?`<div class="box" style="background:#fff3cd;border:1px solid #e6cf7a;border-radius:10px;padding:10px;margin-bottom:10px">${esc(gmsg)}</div>`:'';
+ const tabs=[['login','gateLogin'],['create','gateCreate'],['join','gateJoin'],['activate','gateActivate']].map(x=>`<button class="sm ${gate===x[0]?'':'sec'}" onclick="gate='${x[0]}';gmsg='';render()">${t(x[1])}</button>`).join('');
+ let f='';
+ if(gate==='login')f=`<label>${t('congNumber')}</label><input id=gN inputmode=numeric><label>${t('identifier')}</label><input id=gI autocapitalize=none autocomplete=username><label>${t('code')}</label><input id=gC type=password autocomplete=current-password><div class=row style="margin-top:12px"><button onclick="doLogin()">${t('login')}</button></div>`;
+ if(gate==='create')f=`<label>${t('congName')}</label><input id=gCn><label>${t('congNumber')}</label><input id=gN inputmode=numeric><label>${t('city')}</label><input id=gCi><label>${t('fullName')}</label><input id=gF><label>${t('myFunction')}</label><select id=gFn><option value=secretary>${t('fn_secretary')}</option><option value=coordinator>${t('fn_coordinator')}</option></select><label>${t('identifier')}</label><input id=gI autocapitalize=none><label>${t('newCode')}</label><input id=gC type=password autocomplete=new-password><div class=mut style="margin-top:4px">${t('idHint')}</div><div class=row style="margin-top:12px"><button onclick="doCreate()">${t('create')}</button></div>`;
+ if(gate==='join')f=`<label>${t('congNumber')}</label><input id=gN inputmode=numeric><label>${t('congCode')}</label><input id=gJ autocapitalize=characters><label>${t('fullName')}</label><input id=gF><label>${t('identifier')}</label><input id=gI autocapitalize=none><label>${t('newCode')}</label><input id=gC type=password autocomplete=new-password><div class=mut style="margin-top:4px">${t('idHint')}</div><div class=row style="margin-top:12px"><button onclick="doJoin()">${t('join')}</button></div>`;
+ if(gate==='activate')f=`<label>${t('congNumber')}</label><input id=gN inputmode=numeric><label>${t('identifier')}</label><input id=gI autocapitalize=none><label>${t('tempCode')}</label><input id=gT autocapitalize=characters><label>${t('newCode')}</label><input id=gC type=password autocomplete=new-password><div class=row style="margin-top:12px"><button onclick="doActivate()">${t('activate')}</button></div>`;
+ $('#app').innerHTML=`<header><h1>TheoApp</h1><select style="width:auto;padding:4px 8px" onchange="S.lang=this.value;persist();render()">${openLangs().map(l=>`<option value=${l.code} ${S.lang===l.code?'selected':''}>${esc(l.name)}</option>`).join('')}</select></header><main><div class=row style="margin-bottom:10px">${tabs}</div>${m}<div class=card>${f}</div></main>`;
+ Object.keys(gv).forEach(i=>{const e=document.getElementById(i);if(e&&e.tagName!=='SELECT')e.value=gv[i]});applyTheme()}
+function fv(i){return(($('#'+i)||{}).value||'').trim()}
+async function run(fn){if(S.busy)return;S.busy=true;gmsg='…';render();try{await fn()}catch(e){gmsg=errMsg(e)}S.busy=false;render();if(S.after){const f=S.after;S.after=null;f()}}
+async function afterAuth(){const st=await pull();
+ if(st==='pending'||st==='disabled'){await signOut();gate='login';gmsg=t(st==='pending'?'pendingMsg':'disabledMsg');return}
+ if(st==='nocong'&&!S.owner){await signOut();gate='login';gmsg=t('noCong');return}
+ gmsg='';tab='home';sub=null;if(st==='nocong')openOwner()}
+function doLogin(){const n=fv('gN').toLowerCase(),i=fv('gI').toLowerCase(),c=$('#gC').value;
+ if(!n||!i||!c){gmsg=t('fillAll');return render()}
+ run(async()=>{await signIn(emailOf(n,i),c);await afterAuth()})}
+async function boot(){S.loading=true;
+ await loadCfg();
+ if(A){try{await pull();if(S.state==='nocong'&&S.owner)openOwner()}catch(e){if(e.net){const sn=ls(SNAP);if(sn){Object.assign(S,sn);S.offline=true}else{setAuth(null)}}else{setAuth(null);S.state=null}}}
+ S.loading=false;render()}
+function logout(){signOut().then(()=>{gate='login';gmsg='';sub=null;tab='home';render()})}
+function doCreate(){const n=fv('gN').toLowerCase(),i=fv('gI').toLowerCase(),c=$('#gC').value,cn=fv('gCn'),ci=fv('gCi'),fn=fv('gF'),fu=$('#gFn').value;
+ if(!cn||!OKNUM.test(n)||!fn||!okId(i)||c.length<6){gmsg=t('fillAll');return render()}
+ run(async()=>{await ensureAuth(emailOf(n,i),c);const code=await rpc('create_congregation',{p_name:cn,p_number:n,p_city:ci,p_country:'RDC',p_identifier:i,p_full_name:fn,p_function:fu});await afterAuth();
+  S.after=()=>modal(`<h3>${t('createdMsg')}</h3><div class=card style="text-align:center"><div class=mut>${t('congNumber')} ${esc(n)}</div><div style="font-size:28px;font-weight:700;letter-spacing:3px">${esc(code)}</div></div><p class=mut>${t('shareCode')}</p><button onclick="closeM()">OK</button>`)})}
+function doJoin(){const n=fv('gN').toLowerCase(),i=fv('gI').toLowerCase(),c=$('#gC').value,jc=fv('gJ').toUpperCase(),fn=fv('gF');
+ if(!OKNUM.test(n)||!jc||!fn||!okId(i)||c.length<6){gmsg=t('fillAll');return render()}
+ run(async()=>{await ensureAuth(emailOf(n,i),c);await rpc('join_congregation',{p_number:n,p_join_code:jc,p_identifier:i,p_full_name:fn});await signOut();gate='login';gmsg=t('pendingMsg')})}
+function doActivate(){const n=fv('gN').toLowerCase(),i=fv('gI').toLowerCase(),tc=fv('gT').toUpperCase(),c=$('#gC').value;
+ if(!OKNUM.test(n)||!okId(i)||!tc||c.length<6){gmsg=t('fillAll');return render()}
+ run(async()=>{const ok=await api('/rest/v1/rpc/check_invitation',{method:'POST',body:{p_number:n,p_identifier:i,p_code:tc},auth:false});if(!ok)throw new Error(t('badInvite'));
+  await ensureAuth(emailOf(n,i),c);await rpc('claim_invitation',{p_number:n,p_identifier:i,p_code:tc});await afterAuth()})}
+/* ----- gestion des membres (administrateur) ----- */
+function vMem(){const c=CG(),pend=S.users.filter(u=>u.status==='pending'),act=S.users.filter(u=>u.status!=='pending');
+ const pr=S.pioreq.filter(r=>r.status==='pending');
+ return `<div class=row><button class="sm sec" onclick="sub=null;render()">← ${t('back')}</button><h3 class=sp style="margin:0">${t('members')}</h3></div>
+ <div class=card><div class=mut>${t('congNumber')} <b>${esc(c.number)}</b> · ${t('congCode')} <b>${esc(c.join)}</b></div></div>
+ ${pend.length?`<div class=card><h3>${t('pendingAcc')}</h3>${pend.map(u=>`<div class=item onclick="memberForm('${u.id}')"><div class=av>${esc(u.name[0]||'?')}</div><div class=sp>${esc(u.name)}<div class=mut>${esc(u.identifier)}</div></div><span class="pill no">${t('approve')}</span></div>`).join('')}</div>`:''}
+ ${pr.length?`<div class=card><h3>${t('pioReq')}</h3>${pr.map(r=>`<div class=item><div class=sp>${esc(pubName(r.pub))}<div class=mut>${t(r.kind)}</div></div><button class="sm" onclick="decidePio('${r.id}',true)">${t('approve')}</button> <button class="sm sec" onclick="decidePio('${r.id}',false)">${t('refuse')}</button></div>`).join('')}</div>`:''}
+ <div class=card><h3>${t('createAcc')}</h3><label>${t('fullName')}</label><input id=nmN><label>${t('identifier')}</label><input id=nmI autocapitalize=none><div class=mut>${t('idHint')}</div><label>${t('cat')}</label><select id=nmC>${['publisher','ms','elder'].map(k=>`<option value=${k}>${t('cat_'+k)}</option>`).join('')}</select><div class=row style="margin-top:8px"><button onclick="makeInvite()">${t('create')}</button></div></div>
+ <div class=card><h3>${t('members')} (${act.length})</h3>${act.map(u=>`<div class=item onclick="memberForm('${u.id}')"><div class=av>${esc(u.name[0]||'?')}</div><div class=sp>${esc(u.name)}<div class=mut>${esc(t('cat_'+u.category))}${u.functions.length?' · '+u.functions.map(f=>esc(t('fn_'+f))).join(', '):''}</div></div>${u.status==='disabled'?`<span class="pill no">${t('inactive')}</span>`:''}</div>`).join('')}</div>
+ ${S.invites.length?`<div class=card><h3>${t('invitesOpen')}</h3>${S.invites.map(v=>`<div class=item><div class=sp>${esc(v.name)}<div class=mut>${esc(v.identifier)}</div></div><button class="sm sec" onclick="cancelInvite('${esc(v.identifier)}')">${t('cancel')}</button></div>`).join('')}<div class=mut>${t('inviteLost')}</div></div>`:''}
+ <div class=card><h3>${t('hoursSet')}</h3><div class=row><div style="flex:1"><label>${t('ap')}</label><input type=number value="${c.hours.ap}" onchange="setHours('ap',this.value)"></div><div style="flex:1"><label>${t('rp')}</label><input type=number value="${c.hours.rp}" onchange="setHours('rp',this.value)"></div><div style="flex:1"><label>${t('sp')}</label><input type=number value="${c.hours.sp}" onchange="setHours('sp',this.value)"></div></div></div>`}
+function setHours(k,v){if(!guard())return;const n=v===''?null:+v;S.cg.hours[k]=n==null?'':n;const col={ap:'hours_aux',rp:'hours_reg',sp:'hours_spec'}[k];wr(()=>updw('cong_settings','congregation_id=eq.'+S.cg.id,{[col]:n}))}
+function memberForm(id){const u=S.users.find(x=>x.id===id);
+ modal(`<h3>${esc(u.name)}</h3><div class=mut>${esc(u.identifier)}</div><label>${t('cat')}</label><select id=mfC>${['publisher','ms','elder'].map(k=>`<option value=${k} ${u.category===k?'selected':''}>${t('cat_'+k)}</option>`).join('')}</select>
+ <label>${t('functionsT')}</label>${FN.map(f=>`<label class=chk><input type=checkbox class=mfF value=${f} ${u.functions.includes(f)?'checked':''}> ${t('fn_'+f)}</label>`).join('')}
+ <div class=row style="margin-top:12px"><button onclick="saveMember('${id}','${u.status==='pending'?'active':u.status}')">${u.status==='pending'?t('approve'):t('save')}</button><button class=sec onclick="closeM()">${t('cancel')}</button><span class=sp></span>${u.status==='active'&&u.id!==S.me.id?`<button class="bad sm" onclick="saveMember('${id}','disabled')">${t('disable')}</button>`:''}${u.status==='disabled'?`<button class=sm onclick="saveMember('${id}','active')">${t('enable')}</button>`:''}</div>
+ ${u.status!=='pending'&&u.id!==S.me.id?`<div class=row style="margin-top:12px"><button class="sm sec" onclick="resetCode('${id}')">${t('resetCode')}</button></div><div class=mut>${t('resetHint')}</div>`:''}`)}
+async function saveMember(id,st){if(!guard())return;const u=S.users.find(x=>x.id===id);const f=[...document.querySelectorAll('.mfF')].filter(x=>x.checked).map(x=>x.value);
+ if(id===S.me.id&&!f.some(x=>x==='coordinator'||x==='secretary')){toast(t('keepAdmin'));return}
+ const cat=$('#mfC').value;closeM();
+ try{if(u.status==='pending')await rpc('approve_member',{p_profile:id,p_category:cat,p_functions:fD(f)});else await rpc('set_member',{p_profile:id,p_category:cat,p_functions:fD(f),p_status:st});toast(t('saved'))}catch(e){toast(errMsg(e))}
+ await sync(true)}
+async function makeInvite(){if(!guard())return;const i=fv('nmI').toLowerCase(),n=fv('nmN'),cat=$('#nmC').value;
+ if(!n||!okId(i)){toast(t('fillAll'));return}
+ try{const code=await rpc('create_invitation',{p_identifier:i,p_full_name:n,p_category:cat,p_functions:[]});
+  modal(`<h3>${t('accCreated')}</h3><div class=card><div>${t('congNumber')}: <b>${esc(S.cg.number)}</b></div><div>${t('identifier')}: <b>${esc(i)}</b></div><div>${t('tempCode')}: <b style="font-size:22px;letter-spacing:2px">${esc(code)}</b></div></div><p class=mut>${t('giveMember')}</p><button onclick="closeM()">OK</button>`)}catch(e){toast(errMsg(e))}
+ await sync(true)}
+async function cancelInvite(i){if(!guard())return;try{await rpc('cancel_invitation',{p_identifier:i})}catch(e){toast(errMsg(e))}await sync(true)}
+async function resetCode(id){if(delArm!=='rc'+id){delArm='rc'+id;toast(t('tapConfirm'));return}delArm=null;if(!guard())return;const u=S.users.find(x=>x.id===id);
+ try{const code=await rpc('reset_member_code',{p_profile:id});closeM();modal(`<h3>${esc(u.name)}</h3><div class=card><div>${t('congNumber')}: <b>${esc(S.cg.number)}</b></div><div>${t('identifier')}: <b>${esc(u.identifier)}</b></div><div>${t('tempCode')}: <b style="font-size:22px;letter-spacing:2px">${esc(code)}</b></div></div><p class=mut>${t('giveMember')}</p><button onclick="closeM()">OK</button>`)}catch(e){toast(errMsg(e))}}
+/* ----- groupes, pionniers ----- */
+function groupForm(id){const g=S.groups.find(x=>x.id===id);
+ modal(`<h3>${esc(g.name)}</h3><label>${t('name')}</label><input id=grN value="${esc(g.name)}"><label>${t('fn_group')}</label><select id=grO><option value="">${t('none')}</option>${S.pubs.map(p=>`<option value=${p.id} ${g.overseer===p.id?'selected':''}>${esc(p.name)}</option>`).join('')}</select>
+ <div class=row style="margin-top:12px"><button onclick="saveGroup('${id}')">${t('save')}</button><button class=sec onclick="closeM()">${t('cancel')}</button><span class=sp></span><button class="bad sm" onclick="delGroup('${id}');closeM()">${t('del')}</button></div>`)}
+function saveGroup(id){if(!guard())return;const g=S.groups.find(x=>x.id===id);g.name=fv('grN')||g.name;g.overseer=$('#grO').value||'';closeM();render();wr(()=>updw('groups','id=eq.'+id,{name:g.name,overseer_id:g.overseer||null}))}
+function hrsT(p){const c=CG();if(!c||!isPioneer(p))return '';return (c.hours&&c.hours[p.type])||''}
+function pioBtns(p){const m=myPub();if(!m||m.id!==p.id||p.type!=='pub'||p.baptized===false)return '';
+ if(S.pioreq.some(r=>r.pub===p.id&&r.status==='pending'))return `<div class=mut style="margin:8px 0">${t('pendingReq')}</div>`;
+ return `<div class=row style="margin:8px 0"><button class="sm sec" onclick="reqPio('ap')">${t('requestAux')}</button><button class="sm sec" onclick="reqPio('rp')">${t('requestReg')}</button></div>`}
+function reqPio(k){if(!guard())return;const m=myPub(),r={id:uid(),pub:m.id,kind:k,status:'pending'};S.pioreq.push(r);closeM();toast(t('saved'));render();wr(()=>ins('pioneer_requests',{id:r.id,congregation_id:S.cg.id,publisher_id:m.id,kind:PD[k],status:'pending'}))}
+async function decidePio(id,ok){if(!guard())return;try{await rpc('decide_pioneer',{p_request:id,p_approve:ok})}catch(e){toast(errMsg(e))}await sync(true)}
+/* ----- proprietaire de la plateforme : chiffres seulement ----- */
+const ownerBack=()=>S.state==='ok'?'owner':null;
+function ownerPage(){return sub==='tr'?vTr():(sub&&sub.slice(0,2)==='l:')?vTrLang(sub.slice(2)):vOwner()}
+function openOwner(){sub='owner';S.ov=null;render();rpc('owner_overview').then(r=>{S.ov=r||[];render()}).catch(e=>{toast(errMsg(e));S.ov=[];render()})}
+function vOwner(){const o=S.ov;const nm=o?o.reduce((a,x)=>a+(+x.members||0),0):0;
+ return `${S.state==='ok'?`<div class=row><button class="sm sec" onclick="sub=null;render()">← ${t('back')}</button></div>`:''}
+ <div class=card><h3>${t('ownerView')}</h3><div class=mut>${t('ownerNote')}</div>
+ ${o===null?'<div class=mut style="margin-top:8px">…</div>':o.length?`<div class=grid style="margin:8px 0"><div class=stat><b>${o.length}</b>${t('congsT')}</div><div class=stat><b>${nm}</b>${t('members')}</div></div><table><tr><th>${t('congName')}</th><th>№</th><th>${t('city')}</th><th>${t('members')}</th><th>${t('pendingAcc')}</th></tr>${o.map(c=>`<tr><td>${esc(c.name)}</td><td>${esc(c.number)}</td><td>${esc(c.city||'')}</td><td>${c.members}</td><td>${c.pending}</td></tr>`).join('')}</table>`:`<div class=mut>—</div>`}</div>
+ <div class=card><h3>${t('ownerSupport')}</h3><div class=mut>${t('ownerSupportHint')}</div><label>${t('congNumber')}</label><input id=osN inputmode=numeric><label>${t('identifier')}</label><input id=osI autocapitalize=none><div class=row style="margin-top:8px"><button onclick="ownerReset()">${t('resetCode')}</button></div></div>
+ <div class=card><h3>${t('colourT')}</h3><div class=row>${Object.entries(THEMES).map(([k,v])=>`<button class=sec onclick="setTheme('${k}')" style="display:flex;gap:6px;align-items:center;${S.theme===k?'outline:3px solid '+v[1]:''}"><span style="width:22px;height:22px;border-radius:50%;background:linear-gradient(135deg,${v[1]} 55%,${v[2]} 55%)"></span>${v[0]}</button>`).join('')}</div><div class=row style="margin-top:14px"><button onclick="sub='tr';render()">${t('translations')} →</button></div></div>`}
+async function ownerReset(){const n=fv('osN').toLowerCase(),i=fv('osI').toLowerCase();if(!n||!i){toast(t('fillAll'));return}
+ try{const code=await rpc('owner_reset_code',{p_number:n,p_identifier:i});modal(`<h3>${t('resetCode')}</h3><div class=card><div>${t('congNumber')}: <b>${esc(n)}</b></div><div>${t('identifier')}: <b>${esc(i)}</b></div><div>${t('tempCode')}: <b style="font-size:22px;letter-spacing:2px">${esc(code)}</b></div></div><p class=mut>${t('giveMember')}</p><button onclick="closeM()">OK</button>`)}catch(e){toast(errMsg(e))}}
+/* ----- textes ----- */
+Object.assign(T.en,{gateLogin:'Log in',gateCreate:'Create my congregation',gateJoin:'Join',gateActivate:'Temporary code',congNumber:'Congregation number',congCode:'Congregation code',identifier:'Identifier',code:'Code',fullName:'Full name',myFunction:'My responsibility',create:'Create',join:'Join',login:'Log in',logout:'Log out',activate:'Activate my account',newCode:'Choose your own code (6+ characters)',pendingMsg:'Your account is waiting for approval by the congregation administrator. Log in again later.',disabledMsg:'This account is disabled. Contact your congregation administrator.',createdMsg:'Congregation created. Congregation code:',shareCode:'Share this code only with the members of your congregation.',badLogin:'Incorrect number, identifier or code.',numTaken:'This congregation number already exists.',fillAll:'Fill in all fields correctly (number: letters/digits; identifier: 3-30 letters, digits . _ -; code: 6+ characters).',badCong:'Incorrect congregation number or code.',idTaken:'This identifier is already used.',badInvite:'Invalid temporary code.',members:'Members',pendingAcc:'Waiting for approval',approve:'Approve',refuse:'Refuse',createAcc:'Create an account for a member',tempCode:'Temporary code',functionsT:'Responsibilities',cat:'Category',fn_coordinator:'Coordinator of the body of elders',fn_secretary:'Secretary',fn_preaching:'Preaching overseer',fn_wt:'Watchtower Study conductor',fn_lcm:'Life and Ministry meeting overseer',fn_group:'Group overseer',cat_elder:'Elder',cat_ms:'Ministerial servant',cat_publisher:'Publisher',disable:'Disable',enable:'Enable',keepAdmin:'Keep at least one administrator role for yourself.',invitesOpen:'Accounts not yet activated',accCreated:'Account created',giveMember:'Give these three items to the member. The code is shown only now. The member will choose their own code.',pioReq:'Pioneer requests',requestAux:'Request auxiliary pioneer',requestReg:'Request regular pioneer',pendingReq:'Pioneer request pending',hoursTarget:'Target',hoursSet:'Pioneer hours (per month)',sp:'Special pioneer',youAre:'Signed in as',roleOwner:'Platform owner',ownerView:'Congregations on the platform',ownerNote:'Numbers only. Members, reports and records are never shown here.',city:'City',
+ netErr:'No connection. Check your network and try again.',rateErr:'Too many attempts. Wait a few minutes and try again.',offlineMsg:'Offline: you can read the last data, but changes are not saved.',refresh:'Refresh',refreshing:'Refreshing…',noCong:'This account has no congregation.',changeCode:'Change my code',codeConfirm:'Repeat the code',codesDiffer:'The two codes are different.',codeChanged:'Code changed.',resetCode:'Reset code',resetHint:'Creates a new temporary code. The member can then change it in Settings.',cancelInv:'Cancel',tapConfirm:'Tap again to confirm.',delLinked:'This publisher has an account. Disable the account instead.',inviteLost:'The code is shown only once. If it is lost, cancel and create the account again.',congsT:'Congregations',ownerSupport:'Help a user',ownerSupportHint:'Unlock an account: enter the congregation number and the identifier given by the person. You get a temporary code to give them. No congregation data is shown.',idHint:'Identifier: 3-30 letters or digits (also . _ -), no accents or spaces.',sessionEnd:'Session ended. Log in again.'});
+Object.assign(T.fr,{gateLogin:'Connexion',gateCreate:"Créer mon assemblée",gateJoin:'Rejoindre',gateActivate:'Code temporaire',congNumber:"Numéro de l'assemblée",congCode:"Code de l'assemblée",identifier:'Identifiant',code:'Code',fullName:'Nom complet',myFunction:'Ma responsabilité',create:'Créer',join:'Rejoindre',login:'Se connecter',logout:'Se déconnecter',activate:'Activer mon compte',newCode:'Choisissez votre code (6 caractères ou plus)',pendingMsg:"Votre compte attend la validation de l'administrateur de l'assemblée. Reconnectez-vous plus tard.",disabledMsg:"Ce compte est désactivé. Contactez l'administrateur de votre assemblée.",createdMsg:"Assemblée créée. Code de l'assemblée :",shareCode:"Donnez ce code seulement aux membres de votre assemblée.",badLogin:'Numéro, identifiant ou code incorrect.',numTaken:"Ce numéro d'assemblée existe déjà.",fillAll:'Remplissez tous les champs (numéro : lettres/chiffres ; identifiant : 3 à 30 lettres, chiffres . _ - ; code : 6 caractères ou plus).',badCong:"Numéro ou code d'assemblée incorrect.",idTaken:'Cet identifiant est déjà utilisé.',badInvite:'Code temporaire invalide.',members:'Membres',pendingAcc:'En attente de validation',approve:'Accepter',refuse:'Refuser',createAcc:'Créer un compte pour un membre',tempCode:'Code temporaire',functionsT:'Responsabilités',cat:'Catégorie',fn_coordinator:'Coordinateur du collège des anciens',fn_secretary:'Secrétaire',fn_preaching:'Responsable de la prédication',fn_wt:"Conducteur de l'étude de La Tour de Garde",fn_lcm:'Responsable de la réunion Vie et ministère',fn_group:'Responsable de groupe',cat_elder:'Ancien',cat_ms:'Assistant ministériel',cat_publisher:'Proclamateur',disable:'Désactiver',enable:'Réactiver',keepAdmin:"Gardez au moins un rôle d'administrateur pour vous.",invitesOpen:'Comptes pas encore activés',accCreated:'Compte créé',giveMember:"Donnez ces trois informations au membre. Le code ne s'affiche que maintenant. Le membre choisira ensuite son propre code.",pioReq:'Demandes de pionnier',requestAux:'Demander à être pionnier auxiliaire',requestReg:'Demander à être pionnier permanent',pendingReq:'Demande de pionnier en attente',hoursTarget:'Objectif',hoursSet:'Heures des pionniers (par mois)',sp:'Pionnier spécial',youAre:'Connecté en tant que',roleOwner:'Propriétaire de la plateforme',ownerView:'Assemblées sur la plateforme',ownerNote:'Des chiffres seulement. Les membres, rapports et fiches ne sont jamais affichés ici.',city:'Ville',ap:'Pionnier auxiliaire',rp:'Pionnier permanent',
+ netErr:'Pas de connexion. Vérifiez votre réseau et réessayez.',rateErr:'Trop de tentatives. Attendez quelques minutes.',offlineMsg:'Hors connexion : vous pouvez lire les dernières données, mais les modifications ne sont pas enregistrées.',refresh:'Actualiser',refreshing:'Actualisation…',noCong:"Ce compte n'a pas d'assemblée.",changeCode:'Changer mon code',codeConfirm:'Répétez le code',codesDiffer:'Les deux codes sont différents.',codeChanged:'Code changé.',resetCode:'Réinitialiser le code',resetHint:'Crée un nouveau code temporaire. Le membre pourra ensuite le changer dans Réglages.',cancelInv:'Annuler',tapConfirm:'Touchez encore pour confirmer.',delLinked:"Ce proclamateur a un compte. Désactivez plutôt le compte.",inviteLost:'Le code ne s\'affiche qu\'une fois. En cas de perte, annulez puis recréez le compte.',congsT:'Assemblées',ownerSupport:'Aider un utilisateur',ownerSupportHint:"Débloquer un compte : indiquez le numéro de l'assemblée et l'identifiant donnés par la personne. Vous obtenez un code temporaire à lui transmettre. Aucune donnée de l'assemblée n'est affichée.",idHint:"Identifiant : 3 à 30 lettres ou chiffres (aussi . _ -), sans accents ni espaces.",sessionEnd:'Session terminée. Reconnectez-vous.'});
+function nextStage(){clearTimeout(window._st);stage++;render();if(stage===1)window._st=setTimeout(nextStage,7500)}
+window._st=setTimeout(nextStage,4000);
+addEventListener('visibilitychange',()=>{if(!document.hidden)sync()});
+addEventListener('online',()=>{if(S.offline)sync(true)});
+setInterval(()=>{if(!document.hidden)sync()},60000);
+render();boot();
+</script></body></html>
