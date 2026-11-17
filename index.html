@@ -30,7 +30,8 @@ table{border-collapse:collapse;width:100%;font-size:13px}td,th{border:1px solid 
 .splash .logo{width:84px;height:84px;border-radius:50%;background:var(--acc);color:var(--pri);display:grid;place-items:center;font:700 44px Georgia,serif}
 .splash h1{font:700 30px Georgia,serif;margin:0;animation:sp 4s ease both}.splash p{font-size:19px;line-height:1.4;max-width:320px;margin:0;animation:sp 7.5s ease both}.splash small{opacity:.6;position:absolute;bottom:24px}
 @media (prefers-reduced-motion:reduce){.splash h1,.splash p{animation:none}}
-@media print{header,nav,.noprint,button{display:none!important}body{background:#fff;padding:0}.card{border:0}}
+.seg{display:flex;gap:6px;margin:0 0 10px}.seg button{flex:1;background:#e9e4d6;color:var(--ink)}.seg button.on{background:var(--pri);color:#fff}.late{color:var(--bad)}
+@media print{header,nav,.noprint,button,.seg,select,.toast{display:none!important}body{background:#fff;padding:0}.card{border:0;break-inside:avoid}body.pm main{display:none}body.pm .modal{position:static;background:none;display:block}body.pm .modal>div{max-height:none;overflow:visible;padding:0;border-radius:0;max-width:none}}
 </style></head><body><div id=app></div>
 <script>
 const LM={en:['English',''],fr:['Français','en'],sw:['Swahili','en'],swc:['Swahili (Congo)','fr'],ln:['Lingala','fr']};const MINT=30;
@@ -116,7 +117,7 @@ const SB_URL='https://nhbjqfdrzemuildugiku.supabase.co',SB_KEY='sb_publishable_0
 const KEY='theoapp.v3',AKEY='theoapp.auth',SNAP='theoapp.snap';
 const ls=(k,v)=>{try{if(v===undefined)return JSON.parse(localStorage.getItem(k));if(v===null)localStorage.removeItem(k);else localStorage.setItem(k,JSON.stringify(v))}catch(e){}return null};
 let S;const DEF=()=>({lang:'en',theme:'charituri',langs:[],tr:{}});
-const RT=()=>({groups:[],pubs:[],reports:{},meetings:[],users:[],pioreq:[],invites:[],cg:null,me:null,owner:false,offline:false,state:null,loading:true,busy:false,ov:null});
+const RT=()=>({groups:[],pubs:[],reports:{},meetings:[],users:[],pioreq:[],invites:[],att:[],ter:[],tas:[],v3:false,v4:false,cg:null,me:null,owner:false,offline:false,state:null,loading:true,busy:false,ov:null});
 function load(){const d=ls(KEY)||{};return Object.assign(DEF(),RT(),{lang:d.lang||'en',theme:d.theme||'charituri',langs:d.langs||[],tr:d.tr||{}})}
 function persist(){ls(KEY,{lang:S.lang,theme:S.theme,langs:S.langs,tr:S.tr})}
 S=load();
@@ -137,9 +138,21 @@ async function api(path,o){o=o||{};
 const rest=(p,o)=>api('/rest/v1/'+p,o);
 const rpc=(n,a)=>api('/rest/v1/rpc/'+n,{method:'POST',body:a||{}});
 const MIN={Prefer:'return=minimal'};
-const ins=(t,row,h)=>rest(t,{method:'POST',body:row,headers:Object.assign({},MIN,h||{})});
-async function updw(t,filter,row){const r=await rest(t+'?'+filter,{method:'PATCH',body:row,headers:{Prefer:'return=representation'}});if(Array.isArray(r)&&!r.length)throw new Error(t==='x'?'':'Action refusee');return r}
-const del=(t,filter)=>rest(t+'?'+filter,{method:'DELETE',headers:MIN});
+/* ----- file d'attente : les modifications faites sans connexion sont gardees sur le telephone puis envoyees ----- */
+const QK='theoapp.q';let Q=ls(QK)||[];
+function snap(){ls(SNAP,{me:S.me,cg:S.cg,owner:S.owner,groups:S.groups,pubs:S.pubs,reports:S.reports,meetings:S.meetings,users:S.users,pioreq:S.pioreq,invites:S.invites,att:S.att,ter:S.ter,tas:S.tas,v3:S.v3,v4:S.v4,state:'ok'})}
+function enq(p,o){Q.push({p,o,u:A&&A.uid});ls(QK,Q);snap();toast(t('queued'));if(!S.offline)setTimeout(()=>sync(true),300)}
+async function qrest(p,o){if(navigator.onLine===false)S.offline=true;if(S.offline||Q.length){enq(p,o);return null}
+ try{return await rest(p,o)}catch(e){if(e.net){S.offline=true;enq(p,o);return null}throw e}}
+async function flushQ(){if(!Q.length||S.flushing)return;S.flushing=true;let rej=0,ok=0;
+ try{while(Q.length){const it=Q[0];if(it.u&&A&&it.u!==A.uid){Q.shift();ls(QK,Q);continue}
+  try{await rest(it.p,it.o);Q.shift();ok++;ls(QK,Q)}catch(e){if(e.net||e.status>=500||e.status===401)break;Q.shift();ls(QK,Q);if(e.status!==409)rej++}}}
+ finally{S.flushing=false}
+ if(ok)S.offline=false;if(rej)toast(t('syncRej').replace('{n}',rej))}
+const ins=(t,row,h)=>qrest(t,{method:'POST',body:row,headers:Object.assign({},MIN,h||{})});
+async function updw(t,filter,row){const r=await qrest(t+'?'+filter,{method:'PATCH',body:row,headers:{Prefer:'return=representation'}});if(Array.isArray(r)&&!r.length)throw new Error('Action refusee');return r}
+const del=(t,filter)=>qrest(t+'?'+filter,{method:'DELETE',headers:MIN});
+const opt=p=>p.catch(e=>{if(e.net)throw e;return null});
 async function pageAll(path){let out=[],i=0;for(;;){const r=await rest(path,{headers:{Range:i+'-'+(i+999),'Range-Unit':'items'}});out=out.concat(r||[]);if(!r||r.length<1000)break;i+=1000}return out}
 /* ----- comptes : identifiant + numero d'assemblee -> adresse technique (jamais d'e-mail reel) ----- */
 const emailOf=(num,id)=>id.toLowerCase()+'@c'+num.toLowerCase()+'.'+MAILDOM;
@@ -174,16 +187,20 @@ async function pull(){
  const since=(curSY()-2)+'-09',d90=new Date(Date.now()-90*864e5).toISOString().slice(0,10);
  const R=await Promise.all([rest('groups?select=id,name,overseer_id&order=name'),pageAll('publishers?select=*&order=full_name'),pageAll('reports?select=*&ym=gte.'+since),
   rest('meetings?select=id,mdate,kind,meeting_items(role,person_id,pos)&mdate=gte.'+d90+'&order=mdate.desc'),rest('profiles?select=id,identifier,full_name,category,functions,status&order=full_name'),
-  rest('pioneer_requests?select=id,publisher_id,kind,status&status=eq.pending'),adm?rpc('list_invitations'):Promise.resolve([])]);
+  rest('pioneer_requests?select=id,publisher_id,kind,status&status=eq.pending'),adm?rpc('list_invitations'):Promise.resolve([]),
+  opt(pageAll('meeting_attendance?select=*&mdate=gte.'+(curSY()-1)+'-09-01&order=mdate.desc')),opt(pageAll('territories?select=*&order=number')),opt(pageAll('territory_assignments?select=*&order=assigned_on.desc')),opt(rest('publishers?select=gender,missionary&limit=1'))]);
  S.groups=(R[0]||[]).map(g=>({id:g.id,name:g.name,overseer:g.overseer_id||''}));
- S.pubs=(R[1]||[]).map(x=>({id:x.id,name:x.full_name,phone:x.phone||'',type:PT[x.pioneer]||'pub',cat:x.category,baptized:x.baptized!==false,active:x.active!==false,group:x.group_id||'',notes:x.notes||'',uid:x.user_id||''}));
- S.reports={};(R[2]||[]).forEach(r=>{const n=v=>+v?String(+v):'';S.reports[r.publisher_id+'|'+r.ym]={shared:r.shared,studies:n(r.studies),hours:n(r.hours),credit:n(r.credit),remarks:r.remarks||'',status:r.status}});
+ S.pubs=(R[1]||[]).map(x=>({id:x.id,name:x.full_name,phone:x.phone||'',type:PT[x.pioneer]||'pub',cat:x.category,baptized:x.baptized!==false,active:x.active!==false,group:x.group_id||'',notes:x.notes||'',uid:x.user_id||'',birth:x.birth_date||'',bapt:x.baptism_date||'',addr:x.address||'',hope:x.hope||'',emerg:x.emergency||'',gender:x.gender||'',miss:!!x.missionary}));
+ S.reports={};(R[2]||[]).forEach(r=>{const n=v=>+v?String(+v):'';S.reports[r.publisher_id+'|'+r.ym]={shared:r.shared,studies:n(r.studies),hours:n(r.hours),credit:n(r.credit),remarks:r.remarks||'',status:r.status,pt:PT[r.pioneer]||''}});
  S.meetings=(R[3]||[]).map(m=>({id:m.id,date:m.mdate,kind:m.kind,items:(m.meeting_items||[]).sort((a,b)=>a.pos-b.pos).map(i=>({role:i.role,person:i.person_id||''}))}));
  S.users=(R[4]||[]).map(u=>({id:u.id,identifier:u.identifier,name:u.full_name,category:u.category,functions:fA(u.functions),status:u.status}));
  S.pioreq=(R[5]||[]).map(r=>({id:r.id,pub:r.publisher_id,kind:PT[r.kind]||r.kind,status:r.status}));
  S.invites=(R[6]||[]).map(v=>({identifier:v.identifier,name:v.full_name,category:v.category}));
- S.state='ok';S.offline=false;
- ls(SNAP,{me:S.me,cg:S.cg,owner:S.owner,groups:S.groups,pubs:S.pubs,reports:S.reports,meetings:S.meetings,users:S.users,pioreq:S.pioreq,invites:S.invites,state:'ok'});
+ S.v3=R[7]!==null;S.v4=R[10]!==null;
+ S.att=(R[7]||[]).map(a=>({id:a.id,date:a.mdate,kind:a.kind,count:a.count}));
+ S.ter=(R[8]||[]).map(x=>({id:x.id,num:x.number,name:x.name||'',notes:x.notes||''}));
+ S.tas=(R[9]||[]).map(x=>({id:x.id,ter:x.territory_id,pub:x.publisher_id||'',from:x.assigned_on,to:x.returned_on||'',notes:x.notes||''}));
+ S.state='ok';S.offline=false;snap();
  return S.state}
 async function loadCfg(){try{const r=await rest('app_config?select=theme,langs,tr&id=eq.1',{auth:false});if(r&&r[0]){S.theme=r[0].theme||S.theme;S.langs=r[0].langs||[];S.tr=r[0].tr||{};persist();applyTheme()}}catch(e){}}
 let _cf=null;function saveCfg(){clearTimeout(_cf);_cf=setTimeout(()=>wr(()=>rest('app_config?id=eq.1',{method:'PATCH',body:{theme:S.theme,langs:S.langs,tr:S.tr,updated_at:new Date().toISOString()},headers:MIN})),700)}
@@ -198,10 +215,10 @@ const myGroupIds=()=>{const m=myPub();return m?S.groups.filter(g=>g.overseer===m
 const vp=()=>{if(isCom())return S.pubs;const m=myPub(),gs=myGroupIds();return S.pubs.filter(p=>(m&&p.id===m.id)||(p.group&&gs.includes(p.group)))};
 const canMeet=()=>isAdm()||fns().includes('lcm')||fns().includes('wt');
 /* ecriture : on met a jour l'ecran tout de suite, puis on envoie ; en cas d'echec on recharge */
-const guard=()=>{if(S.offline){toast(t('offlineMsg'));return false}return true};
+const guard=net=>{if(net&&S.offline){toast(t('needNet'));return false}return true};
 async function wr(fn){try{await fn()}catch(e){toast(errMsg(e));await sync(true)}}
 function canRerender(){const a=document.activeElement;return !document.getElementById('modal')&&!(a&&/^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName))}
-async function sync(force){if(!A||S.state!=='ok'||S.busy)return;try{await pull()}catch(e){if(e.net)S.offline=true;else if(e.status===401||e.status===403){await signOut();gate='login';gmsg=t('sessionEnd');render();return}}if(force||canRerender())render()}
+async function sync(force){if(!A||S.state!=='ok'||S.busy)return;try{await flushQ();if(Q.length){if(force||canRerender())render();return}await pull()}catch(e){if(e.net)S.offline=true;else if(e.status===401||e.status===403){await signOut();gate='login';gmsg=t('sessionEnd');render();return}}if(force||canRerender())render()}
 let gate='login',gmsg='';
 function langs(){const a=Object.keys(LM).map(c=>({code:c,name:LM[c][0],fb:LM[c][1],built:true}));(S.langs||[]).forEach(l=>a.push({code:l.code,name:l.name,fb:l.fb||'en',built:false}));return a}
 function getL(c){return langs().find(l=>l.code===c)}
@@ -238,7 +255,7 @@ function render(){
  if(!openLangs().some(l=>l.code===S.lang))S.lang='en';document.documentElement.lang=['en','fr','sw','ln'].includes(S.lang)?S.lang:S.lang==='swc'?'sw':'en';applyTheme();
  const tabs=[['home','⌂',t('home')],['people','☺',t('people')],['reports','✎',t('reports')],['meetings','▤',t('meetings')],['settings','⚙',t('settings')]];
  const body={home:vHome,people:vPeople,reports:vReports,meetings:vMeetings,settings:vSettings}[tab]();
- $('#app').innerHTML=`<header><h1>TheoApp <small>${esc((CG()||{}).name||'')}</small></h1><button class="sm sec" onclick="sync(true);toast(t('refreshing'))" title="${esc(t('refresh'))}">↻</button></header>${S.offline?`<div style="background:#fde0e0;color:var(--bad);padding:6px 16px;font-size:13px">${t('offlineMsg')}</div>`:''}<main>${body}</main><nav>${tabs.map(x=>`<a class="${tab===x[0]?'on':''}" onclick="go('${x[0]}')"><b>${x[1]}</b>${x[2]}</a>`).join('')}</nav>`}
+ $('#app').innerHTML=`<header><h1>TheoApp <small>${esc((CG()||{}).name||'')}</small></h1><button class="sm sec" onclick="sync(true);toast(t('refreshing'))" title="${esc(t('refresh'))}">↻</button></header>${S.offline||Q.length?`<div class=noprint style="background:#fde0e0;color:var(--bad);padding:6px 16px;font-size:13px">${S.offline?t('offlineMsg'):''}${Q.length?' · '+Q.length+' '+t('pending'):''}</div>`:''}<main>${body}</main><nav>${tabs.map(x=>`<a class="${tab===x[0]?'on':''}" onclick="go('${x[0]}')"><b>${x[1]}</b>${x[2]}</a>`).join('')}</nav>`}
 function go(x){sub=null;tab=x;openCard=null;q='';render();scrollTo(0,0)}
 function vHome(){
  const[y,m]=nowYM(),act=vp().filter(p=>p.active!==false),done=act.filter(p=>rep(p.id,y,m)),miss=act.filter(p=>!rep(p.id,y,m));
@@ -263,16 +280,23 @@ function pubForm(id){const p=S.pubs.find(x=>x.id===id)||{type:'pub',cat:'publish
  <label>${t('cat')}</label><select id=fC>${['publisher','ms','elder'].map(k=>`<option value=${k} ${(p.cat||'publisher')===k?'selected':''}>${t('cat_'+k)}</option>`).join('')}</select>
  <label>${t('group')}</label><select id=fG><option value="">${t('none')}</option>${S.groups.map(g=>`<option value=${g.id} ${p.group===g.id?'selected':''}>${esc(g.name)}</option>`).join('')}</select>
  <label class=chk><input type=checkbox id=fB ${p.baptized!==false?'checked':''}> ${t('baptized')}</label><label class=chk><input type=checkbox id=fA ${p.active!==false?'checked':''}> ${t('active')}</label>
+ ${S.v3?`<label>${t('birth')}</label><input id=fBd type=date value="${esc(p.birth||'')}"><label>${t('bapt')}</label><input id=fBp type=date value="${esc(p.bapt||'')}">
+ <label>${t('hope')}</label><select id=fHo><option value="">—</option>${['other_sheep','anointed'].map(k=>`<option value=${k} ${p.hope===k?'selected':''}>${t('hope_'+k)}</option>`).join('')}</select>
+ <label>${t('addr')}</label><input id=fAd value="${esc(p.addr||'')}"><label>${t('emerg')}</label><input id=fEm value="${esc(p.emerg||'')}">`:''}
+ ${S.v4?`<label>${t('gender')}</label><select id=fSx><option value="">—</option><option value=m ${p.gender==='m'?'selected':''}>${t('male')}</option><option value=f ${p.gender==='f'?'selected':''}>${t('female')}</option></select><label class=chk><input type=checkbox id=fMi ${p.miss?'checked':''}> ${t('missionary')}</label>`:''}
  <label>${t('notes')}</label><textarea id=fNo rows=2>${esc(p.notes||'')}</textarea>
  <div class=row style="margin-top:12px"><button onclick="savePub('${id||''}')">${t('save')}</button><button class=sec onclick="closeM()">${t('cancel')}</button><span class=sp></span>${id?`<button class="bad sm" onclick="delPub('${id}')">${t('del')}</button>`:''}</div>`)}
 function pubCard(id){openCard=id;ry=ry||curSY();const p=S.pubs.find(x=>x.id===id);
  let th=0,ts=0,n=0;const rows=syMonths(ry).map(([y,m])=>{const r=rep(id,y,m);if(r){n+=r.shared?1:0;th+=+r.hours||0;ts+=+r.studies||0}
   return `<tr onclick="openRep('${id}',${y},${m})" style="cursor:pointer"><td>${t('months')[m-1]} ${y}</td><td>${r?(r.shared?'✓':'✗'):''}</td><td>${r?r.studies||'':''}</td><td>${r&&(r.hours||r.credit)?(+r.hours||0)+(r.credit?'+'+r.credit:''):''}</td><td>${r?esc(r.remarks||''):''}</td></tr>`}).join('');
- modal(`<div class=row><div class=av>${esc(p.name[0]||'?')}</div><div class=sp><h3 style="margin:0">${esc(p.name)}</h3><div class=mut>${esc(typeLabel(p))} · ${esc(groupName(p.group))}${p.phone?' · '+esc(p.phone):''}</div></div>${isCom()?`<button class="sm sec" onclick="pubForm('${id}')">${t('edit')}</button>`:''}</div>${pioBtns(p)}
- <div class=row style="margin:10px 0"><label style="margin:0">${t('year')}</label><select style="width:auto" onchange="ry=+this.value;pubCard('${id}')">${[curSY()-2,curSY()-1,curSY(),curSY()+1].map(y=>`<option value=${y} ${y===ry?'selected':''}>${y}–${y+1}</option>`).join('')}</select></div>
+ modal(`<div class=row><div class=av>${esc(p.name[0]||'?')}</div><div class=sp><h3 style="margin:0">${esc(p.name)}</h3><div class=mut>${esc(typeLabel(p))} · ${esc(groupName(p.group))}${p.phone?' · '+esc(p.phone):''}</div></div>${S.v3?`<button class="sm sec" onclick="fiche('${id}')">${t('fiche')}</button>`:''}${isCom()?`<button class="sm sec" onclick="pubForm('${id}')">${t('edit')}</button>`:''}</div>${pioBtns(p)}
+ <div class=row style="margin:10px 0"><label style="margin:0">${t('year')}</label><select style="width:auto" onchange="ry=+this.value;pubCard('${id}')">${[curSY()-2,curSY()-1,curSY(),curSY()+1].map(y=>`<option value=${y} ${y===ry?'selected':''}>${y+1} (${y}–${y+1})</option>`).join('')}</select></div>
  <table><tr><th>${t('month')}</th><th>${t('shared')}</th><th>${t('studies')}</th><th>${t('hours')}</th><th>${t('remarks')}</th></tr>${rows}<tr><th>${t('total')}</th><th>${n}</th><th>${ts}</th><th>${th}</th><th></th></tr></table>
  ${p.notes?`<p class=mut>${esc(p.notes)}</p>`:''}<div class=row style="margin-top:10px"><button class=sec onclick="closeM()">OK</button></div>`)}
-function vReports(){
+let rtab='list',mtab='prog';
+function seg(cur,v,items){return `<div class=seg>${items.map(x=>`<button class="${cur===x[0]?'on':''}" onclick="${v}='${x[0]}';render()">${x[1]}</button>`).join('')}</div>`}
+function vReports(){if(!isCom())return vReportsList();return seg(rtab,'rtab',[['list',t('reports')],['sum',t('tabSum')]])+(rtab==='sum'?vSummary():vReportsList())}
+function vReportsList(){
  if(!rm){const[y,m]=nowYM();rm=[y,m]}const[y,m]=rm;const sy=svcYearOf(y,m);
  const act=vp().filter(p=>p.active!==false).sort((a,b)=>a.name.localeCompare(b.name));
  const cats={pub:{n:0,s:0,h:0},ap:{n:0,s:0,h:0},rp:{n:0,s:0,h:0},sp:{n:0,s:0,h:0}};
@@ -291,7 +315,8 @@ function openRep(id,y,m){if(y==null){[y,m]=rm||nowYM()}const p=S.pubs.find(x=>x.
  <label>${t('remarks')}</label><input id=rR value="${esc(r.remarks||'')}">
  <div class=row style="margin-top:12px"><button onclick="saveRep('${id}',${y},${m})">${t('save')}</button><button class=sec onclick="closeM()">${t('cancel')}</button><span class=sp></span>${rep(id,y,m)&&isCom()?`<button class="bad sm" onclick="clearRep('${id}',${y},${m})">${t('del')}</button>`:''}</div>`)}
 const ROLES={mid:['chairman','prayer','treasures','reading','part','part','part','prayer'],wk:['chairman','talk','wtReader','prayer','sound','mics','attendant']};
-function vMeetings(){
+function vMeetings(){if(!S.v3)return vMeetList();return seg(mtab,'mtab',[['prog',t('tabProg')],['att',t('tabAtt')]])+(mtab==='att'?vAtt():vMeetList())}
+function vMeetList(){
  const l=[...S.meetings].sort((a,b)=>b.date.localeCompare(a.date));
  return `<div class=row><h3 class=sp style="margin:0">${t('meetingsT')}</h3>${canMeet()?`<button onclick="meetForm()">+ ${t('newMeeting')}</button>`:''}</div>
  ${l.length?l.map(x=>`<div class=card ${canMeet()?`onclick="meetForm('${x.id}')" style="cursor:pointer"`:''}><div class=row><b class=sp>${fmtDate(x.date)}</b><span class=pill>${t(x.kind==='wk'?'weekend':'midweek')}</span></div>${x.items.map(i=>`<div class=row><span class=mut style="width:48%">${t(i.role)}</span><span>${esc(pubName(i.person)||'—')}</span></div>`).join('')}</div>`).join(''):`<div class=card><div class=mut>${t('noMeet')}</div></div>`}`}
@@ -325,14 +350,18 @@ const instBlock=()=>isInst()?`<div class=mut>${t('installed')}</div>`:dip?`<div 
 if('serviceWorker'in navigator)addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
 function savePub(id){const name=$('#fN').value.trim();if(!name)return $('#fN').focus();if(!guard())return;
  const o={name,phone:$('#fP').value.trim(),type:$('#fT').value,cat:$('#fC').value,group:$('#fG').value,baptized:$('#fB').checked,active:$('#fA').checked,notes:$('#fNo').value.trim()};
+ if(S.v3)Object.assign(o,{birth:fv('fBd'),bapt:fv('fBp'),hope:fv('fHo'),addr:fv('fAd'),emerg:fv('fEm')});
+ if(S.v4)Object.assign(o,{gender:fv('fSx'),miss:$('#fMi').checked});
  const row={full_name:o.name,phone:o.phone||null,category:o.cat,baptized:o.baptized,pioneer:PD[o.type]||null,group_id:o.group||null,active:o.active,notes:o.notes||null};
+ if(S.v4)Object.assign(row,{gender:o.gender||null,missionary:!!o.miss});
+ if(S.v3)Object.assign(row,{birth_date:o.birth||null,baptism_date:o.bapt||null,hope:o.hope||null,address:o.addr||null,emergency:o.emerg||null});
  let nid=id;if(id){Object.assign(S.pubs.find(p=>p.id===id),o)}else{nid=uid();S.pubs.push({id:nid,...o,uid:''})}
  closeM();toast(t('saved'));render();
  wr(()=>id?updw('publishers','id=eq.'+id,row):ins('publishers',Object.assign({id:nid,congregation_id:S.cg.id},row)))}
 function delPub(id){const p=S.pubs.find(x=>x.id===id);if(p&&p.uid){toast(t('delLinked'));return}if(delArm!==id){delArm=id;toast(t('confirmDel'));return}delArm=null;if(!guard())return;S.pubs=S.pubs.filter(p=>p.id!==id);Object.keys(S.reports).forEach(k=>{if(k.startsWith(id+'|'))delete S.reports[k]});closeM();toast(t('deleted'));render();wr(()=>del('publishers','id=eq.'+id))}
-function saveRep(id,y,m){if(!guard())return;const g=i=>($('#'+i)||{}).value||'';const r={shared:$('#rS').checked,studies:g('rB'),hours:g('rH'),credit:g('rC'),remarks:g('rR'),status:'submitted'};setRep(id,y,m,r);
+function saveRep(id,y,m){if(!guard())return;const g=i=>($('#'+i)||{}).value||'';const pp=S.pubs.find(x=>x.id===id),r={shared:$('#rS').checked,studies:g('rB'),hours:g('rH'),credit:g('rC'),remarks:g('rR'),status:'submitted',pt:pp?pp.type:''};setRep(id,y,m,r);
  closeM();toast(t('saved'));if(openCard){pubCard(openCard)}render();
- wr(()=>ins('reports?on_conflict=publisher_id,ym',{congregation_id:S.cg.id,publisher_id:id,ym:ymKey(y,m),shared:r.shared,studies:parseInt(r.studies)||0,hours:+r.hours||0,credit:+r.credit||0,remarks:r.remarks||null,status:'submitted',updated_by:S.me.id,updated_at:new Date().toISOString()},{Prefer:'resolution=merge-duplicates,return=minimal'}))}
+ wr(()=>ins('reports?on_conflict=publisher_id,ym',{congregation_id:S.cg.id,publisher_id:id,ym:ymKey(y,m),shared:r.shared,studies:parseInt(r.studies)||0,hours:+r.hours||0,credit:+r.credit||0,remarks:r.remarks||null,status:'submitted',...(S.v3?{pioneer:PD[pp.type]||null}:{}),updated_by:S.me.id,updated_at:new Date().toISOString()},{Prefer:'resolution=merge-duplicates,return=minimal'}))}
 function clearRep(id,y,m){if(!guard())return;setRep(id,y,m,null);closeM();render();wr(()=>del('reports','publisher_id=eq.'+id+'&ym=eq.'+ymKey(y,m)))}
 function saveMeet(id){const o={date:$('#mD').value,kind:$('#mK').value,items:_mi};if(!o.date||!guard())return;let m;
  if(id){m=S.meetings.find(x=>x.id===id);Object.assign(m,o)}else{m={id:uid(),...o};S.meetings.push(m)}
@@ -343,11 +372,14 @@ function saveMeet(id){const o={date:$('#mD').value,kind:$('#mK').value,items:_mi
 function delMeet(id){if(delArm!==id){delArm=id;toast(t('confirmDel'));return}delArm=null;if(!guard())return;S.meetings=S.meetings.filter(m=>m.id!==id);closeM();render();wr(()=>del('meetings','id=eq.'+id))}
 function vSettings(){
  if(sub==='mem'&&isAdm())return vMem();
+ if(sub==='ter'&&S.v3)return vTer();
  if(S.owner&&(sub==='owner'||sub==='tr'||(sub&&sub.slice(0,2)==='l:')))return ownerPage();
  const c=CG(),u=U();
  return `<div class=card><div class=mut>${t('youAre')}</div><b>${esc(u.name)}</b><div class=mut>${esc(t('cat_'+u.category))}${u.functions.length?' · '+u.functions.map(f=>esc(t('fn_'+f))).join(', '):''}</div><div class=mut>${esc(c.name)} · ${t('congNumber')} ${esc(c.number)}</div><div class=row style="margin-top:10px"><button class=sec onclick="logout()">${t('logout')}</button></div></div>
  <div class=card><label>${t('language')}</label><select onchange="S.lang=this.value;persist();render()">${openLangs().map(l=>`<option value=${l.code} ${S.lang===l.code?'selected':''}>${esc(l.name)}${l.code==='en'?' ★':''}</option>`).join('')}</select><div class=mut>${t('lang2')}</div></div>
  ${isAdm()?`<div class=card><h3>${t('members')}</h3><div class=row><button onclick="sub='mem';render()">${t('members')} →</button></div><p class=mut>${t('congCode')}: <b>${esc(c.join)}</b></p></div>`:''}
+ ${S.v3?`<div class=card><h3>${t('territories')}</h3><div class=row><button onclick="sub='ter';render()">${t('territories')} →</button></div></div>`:isAdm()?`<div class=card><div class=mut>${t('needSql')}</div></div>`:''}
+ ${isCom()?vBackup():''}
  ${S.owner?`<div class=card><h3>${t('roleOwner')}</h3><div class=row><button onclick="openOwner()">${t('ownerView')} →</button></div></div>`:''}
  <div class=card><h3>${t('changeCode')}</h3><label>${t('newCode')}</label><input id=ccA type=password autocomplete=new-password><label>${t('codeConfirm')}</label><input id=ccB type=password autocomplete=new-password><div class=row style="margin-top:8px"><button onclick="chgCode()">${t('save')}</button></div></div>
  <div class=card><h3>${t('install')}</h3>${instBlock()}</div>`}
@@ -413,18 +445,18 @@ function memberForm(id){const u=S.users.find(x=>x.id===id);
  <label>${t('functionsT')}</label>${FN.map(f=>`<label class=chk><input type=checkbox class=mfF value=${f} ${u.functions.includes(f)?'checked':''}> ${t('fn_'+f)}</label>`).join('')}
  <div class=row style="margin-top:12px"><button onclick="saveMember('${id}','${u.status==='pending'?'active':u.status}')">${u.status==='pending'?t('approve'):t('save')}</button><button class=sec onclick="closeM()">${t('cancel')}</button><span class=sp></span>${u.status==='active'&&u.id!==S.me.id?`<button class="bad sm" onclick="saveMember('${id}','disabled')">${t('disable')}</button>`:''}${u.status==='disabled'?`<button class=sm onclick="saveMember('${id}','active')">${t('enable')}</button>`:''}</div>
  ${u.status!=='pending'&&u.id!==S.me.id?`<div class=row style="margin-top:12px"><button class="sm sec" onclick="resetCode('${id}')">${t('resetCode')}</button></div><div class=mut>${t('resetHint')}</div>`:''}`)}
-async function saveMember(id,st){if(!guard())return;const u=S.users.find(x=>x.id===id);const f=[...document.querySelectorAll('.mfF')].filter(x=>x.checked).map(x=>x.value);
+async function saveMember(id,st){if(!guard(1))return;const u=S.users.find(x=>x.id===id);const f=[...document.querySelectorAll('.mfF')].filter(x=>x.checked).map(x=>x.value);
  if(id===S.me.id&&!f.some(x=>x==='coordinator'||x==='secretary')){toast(t('keepAdmin'));return}
  const cat=$('#mfC').value;closeM();
  try{if(u.status==='pending')await rpc('approve_member',{p_profile:id,p_category:cat,p_functions:fD(f)});else await rpc('set_member',{p_profile:id,p_category:cat,p_functions:fD(f),p_status:st});toast(t('saved'))}catch(e){toast(errMsg(e))}
  await sync(true)}
-async function makeInvite(){if(!guard())return;const i=fv('nmI').toLowerCase(),n=fv('nmN'),cat=$('#nmC').value;
+async function makeInvite(){if(!guard(1))return;const i=fv('nmI').toLowerCase(),n=fv('nmN'),cat=$('#nmC').value;
  if(!n||!okId(i)){toast(t('fillAll'));return}
  try{const code=await rpc('create_invitation',{p_identifier:i,p_full_name:n,p_category:cat,p_functions:[]});
   modal(`<h3>${t('accCreated')}</h3><div class=card><div>${t('congNumber')}: <b>${esc(S.cg.number)}</b></div><div>${t('identifier')}: <b>${esc(i)}</b></div><div>${t('tempCode')}: <b style="font-size:22px;letter-spacing:2px">${esc(code)}</b></div></div><p class=mut>${t('giveMember')}</p><button onclick="closeM()">OK</button>`)}catch(e){toast(errMsg(e))}
  await sync(true)}
-async function cancelInvite(i){if(!guard())return;try{await rpc('cancel_invitation',{p_identifier:i})}catch(e){toast(errMsg(e))}await sync(true)}
-async function resetCode(id){if(delArm!=='rc'+id){delArm='rc'+id;toast(t('tapConfirm'));return}delArm=null;if(!guard())return;const u=S.users.find(x=>x.id===id);
+async function cancelInvite(i){if(!guard(1))return;try{await rpc('cancel_invitation',{p_identifier:i})}catch(e){toast(errMsg(e))}await sync(true)}
+async function resetCode(id){if(delArm!=='rc'+id){delArm='rc'+id;toast(t('tapConfirm'));return}delArm=null;if(!guard(1))return;const u=S.users.find(x=>x.id===id);
  try{const code=await rpc('reset_member_code',{p_profile:id});closeM();modal(`<h3>${esc(u.name)}</h3><div class=card><div>${t('congNumber')}: <b>${esc(S.cg.number)}</b></div><div>${t('identifier')}: <b>${esc(u.identifier)}</b></div><div>${t('tempCode')}: <b style="font-size:22px;letter-spacing:2px">${esc(code)}</b></div></div><p class=mut>${t('giveMember')}</p><button onclick="closeM()">OK</button>`)}catch(e){toast(errMsg(e))}}
 /* ----- groupes, pionniers ----- */
 function groupForm(id){const g=S.groups.find(x=>x.id===id);
@@ -436,7 +468,7 @@ function pioBtns(p){const m=myPub();if(!m||m.id!==p.id||p.type!=='pub'||p.baptiz
  if(S.pioreq.some(r=>r.pub===p.id&&r.status==='pending'))return `<div class=mut style="margin:8px 0">${t('pendingReq')}</div>`;
  return `<div class=row style="margin:8px 0"><button class="sm sec" onclick="reqPio('ap')">${t('requestAux')}</button><button class="sm sec" onclick="reqPio('rp')">${t('requestReg')}</button></div>`}
 function reqPio(k){if(!guard())return;const m=myPub(),r={id:uid(),pub:m.id,kind:k,status:'pending'};S.pioreq.push(r);closeM();toast(t('saved'));render();wr(()=>ins('pioneer_requests',{id:r.id,congregation_id:S.cg.id,publisher_id:m.id,kind:PD[k],status:'pending'}))}
-async function decidePio(id,ok){if(!guard())return;try{await rpc('decide_pioneer',{p_request:id,p_approve:ok})}catch(e){toast(errMsg(e))}await sync(true)}
+async function decidePio(id,ok){if(!guard(1))return;try{await rpc('decide_pioneer',{p_request:id,p_approve:ok})}catch(e){toast(errMsg(e))}await sync(true)}
 /* ----- proprietaire de la plateforme : chiffres seulement ----- */
 const ownerBack=()=>S.state==='ok'?'owner':null;
 function ownerPage(){return sub==='tr'?vTr():(sub&&sub.slice(0,2)==='l:')?vTrLang(sub.slice(2)):vOwner()}
@@ -454,6 +486,166 @@ Object.assign(T.en,{installNow:'Install TheoApp on this phone',installed:'TheoAp
  netErr:'No connection. Check your network and try again.',rateErr:'Too many attempts. Wait a few minutes and try again.',offlineMsg:'Offline: you can read the last data, but changes are not saved.',refresh:'Refresh',refreshing:'Refreshing…',noCong:'This account has no congregation.',changeCode:'Change my code',codeConfirm:'Repeat the code',codesDiffer:'The two codes are different.',codeChanged:'Code changed.',resetCode:'Reset code',resetHint:'Creates a new temporary code. The member can then change it in Settings.',cancelInv:'Cancel',tapConfirm:'Tap again to confirm.',delLinked:'This publisher has an account. Disable the account instead.',inviteLost:'The code is shown only once. If it is lost, cancel and create the account again.',congsT:'Congregations',ownerSupport:'Help a user',ownerSupportHint:'Unlock an account: enter the congregation number and the identifier given by the person. You get a temporary code to give them. No congregation data is shown.',idHint:'Identifier: 3-30 letters or digits (also . _ -), no accents or spaces.',sessionEnd:'Session ended. Log in again.'});
 Object.assign(T.fr,{installNow:"Installer TheoApp sur ce téléphone",installed:'TheoApp est installée sur ce téléphone.',installHint:"Si le bouton n'apparaît pas : menu ⋮ de Chrome → Installer l'application (ou Ajouter à l'écran d'accueil).",gateLogin:'Connexion',gateCreate:"Créer mon assemblée",gateJoin:'Rejoindre',gateActivate:'Code temporaire',congNumber:"Numéro de l'assemblée",congCode:"Code de l'assemblée",identifier:'Identifiant',code:'Code',fullName:'Nom complet',myFunction:'Ma responsabilité',create:'Créer',join:'Rejoindre',login:'Se connecter',logout:'Se déconnecter',activate:'Activer mon compte',newCode:'Choisissez votre code (6 caractères ou plus)',pendingMsg:"Votre compte attend la validation de l'administrateur de l'assemblée. Reconnectez-vous plus tard.",disabledMsg:"Ce compte est désactivé. Contactez l'administrateur de votre assemblée.",createdMsg:"Assemblée créée. Code de l'assemblée :",shareCode:"Donnez ce code seulement aux membres de votre assemblée.",badLogin:'Numéro, identifiant ou code incorrect.',numTaken:"Ce numéro d'assemblée existe déjà.",fillAll:'Remplissez tous les champs (numéro : lettres/chiffres ; identifiant : 3 à 30 lettres, chiffres . _ - ; code : 6 caractères ou plus).',badCong:"Numéro ou code d'assemblée incorrect.",idTaken:'Cet identifiant est déjà utilisé.',badInvite:'Code temporaire invalide.',members:'Membres',pendingAcc:'En attente de validation',approve:'Accepter',refuse:'Refuser',createAcc:'Créer un compte pour un membre',tempCode:'Code temporaire',functionsT:'Responsabilités',cat:'Catégorie',fn_coordinator:'Coordinateur du collège des anciens',fn_secretary:'Secrétaire',fn_preaching:'Responsable de la prédication',fn_wt:"Conducteur de l'étude de La Tour de Garde",fn_lcm:'Responsable de la réunion Vie et ministère',fn_group:'Responsable de groupe',cat_elder:'Ancien',cat_ms:'Assistant ministériel',cat_publisher:'Proclamateur',disable:'Désactiver',enable:'Réactiver',keepAdmin:"Gardez au moins un rôle d'administrateur pour vous.",invitesOpen:'Comptes pas encore activés',accCreated:'Compte créé',giveMember:"Donnez ces trois informations au membre. Le code ne s'affiche que maintenant. Le membre choisira ensuite son propre code.",pioReq:'Demandes de pionnier',requestAux:'Demander à être pionnier auxiliaire',requestReg:'Demander à être pionnier permanent',pendingReq:'Demande de pionnier en attente',hoursTarget:'Objectif',hoursSet:'Heures des pionniers (par mois)',sp:'Pionnier spécial',youAre:'Connecté en tant que',roleOwner:'Propriétaire de la plateforme',ownerView:'Assemblées sur la plateforme',ownerNote:'Des chiffres seulement. Les membres, rapports et fiches ne sont jamais affichés ici.',city:'Ville',ap:'Pionnier auxiliaire',rp:'Pionnier permanent',
  netErr:'Pas de connexion. Vérifiez votre réseau et réessayez.',rateErr:'Trop de tentatives. Attendez quelques minutes.',offlineMsg:'Hors connexion : vous pouvez lire les dernières données, mais les modifications ne sont pas enregistrées.',refresh:'Actualiser',refreshing:'Actualisation…',noCong:"Ce compte n'a pas d'assemblée.",changeCode:'Changer mon code',codeConfirm:'Répétez le code',codesDiffer:'Les deux codes sont différents.',codeChanged:'Code changé.',resetCode:'Réinitialiser le code',resetHint:'Crée un nouveau code temporaire. Le membre pourra ensuite le changer dans Réglages.',cancelInv:'Annuler',tapConfirm:'Touchez encore pour confirmer.',delLinked:"Ce proclamateur a un compte. Désactivez plutôt le compte.",inviteLost:'Le code ne s\'affiche qu\'une fois. En cas de perte, annulez puis recréez le compte.',congsT:'Assemblées',ownerSupport:'Aider un utilisateur',ownerSupportHint:"Débloquer un compte : indiquez le numéro de l'assemblée et l'identifiant donnés par la personne. Vous obtenez un code temporaire à lui transmettre. Aucune donnée de l'assemblée n'est affichée.",idHint:"Identifiant : 3 à 30 lettres ou chiffres (aussi . _ -), sans accents ni espaces.",sessionEnd:'Session terminée. Reconnectez-vous.'});
+/* ================= Version 5 : resume mensuel, assistance, fiche, territoires, sauvegarde, hors connexion ================= */
+Object.assign(T.en,{offlineMsg:'Offline: your changes are kept on this phone and will be sent when the connection returns.',needNet:'This action needs a connection.',queued:'Saved on this phone. It will be sent when online.',pending:'waiting to be sent',syncRej:'{n} change(s) could not be saved.',
+ tabSum:'Monthly summary',tabProg:'Programme',tabAtt:'Attendance',listed:'Listed',notReported:'Not yet reported',copyText:'Copy text',copied:'Copied',printB:'Print',attAvg:'Average attendance',
+ addAtt:'Add attendance',attCount:'Number present',avg:'Average',noAtt:'No attendance recorded.',attYear:'Year average',
+ fiche:'Record card',ficheT:'Publisher record card',birth:'Date of birth',bapt:'Date of baptism',addr:'Address',hope:'Hope',hope_other_sheep:'Other sheep',hope_anointed:'Anointed',emerg:'Emergency contact',
+ territories:'Territories',terNo:'Number',terName:'Name / description',newTer:'New territory',assign:'Assign',assignedTo:'Assigned to',since:'since',returnT:'Mark as returned',returnDate:'Return date',assignDate:'Assignment date',available:'Available',lastDone:'Last completed',never:'Never',history:'History',terDup:'This number already exists.',over12:'Over 12 months',noTer:'No territory yet.',chooseP:'Choose a publisher',
+ backup:'Backup of data',bkJson:'Download full backup',bkPubs:'Publishers list (Excel)',bkRep:'Reports of this service year (Excel)',bkLast:'Last backup',bkNever:'never',bkWarn:'The file contains personal data. Keep it safe.',
+ svcType:'Type of service',assignedN:'Territories assigned',needSql:'The new functions need SQL part 3 (not run yet).',copyHelp:'Select all and copy:'});
+Object.assign(T.fr,{offlineMsg:'Hors connexion : vos modifications sont gardées sur ce téléphone et seront envoyées au retour de la connexion.',needNet:'Cette action demande une connexion.',queued:'Enregistré sur ce téléphone. Sera envoyé en ligne.',pending:'en attente d’envoi',syncRej:'{n} modification(s) n’ont pas pu être enregistrées.',
+ tabSum:'Résumé mensuel',tabProg:'Programme',tabAtt:'Assistance',listed:'Inscrits',notReported:'Pas encore de rapport',copyText:'Copier le texte',copied:'Copié',printB:'Imprimer',attAvg:'Assistance moyenne',
+ addAtt:'Ajouter une assistance',attCount:'Nombre de présents',avg:'Moyenne',noAtt:'Aucune assistance enregistrée.',attYear:'Moyenne de l’année',
+ fiche:'Fiche',ficheT:'Fiche de proclamateur',birth:'Date de naissance',bapt:'Date de baptême',addr:'Adresse',hope:'Espérance',hope_other_sheep:'Autres brebis',hope_anointed:'Oints',emerg:'Contact en cas d’urgence',
+ territories:'Territoires',terNo:'Numéro',terName:'Nom / description',newTer:'Nouveau territoire',assign:'Attribuer',assignedTo:'Attribué à',since:'depuis',returnT:'Marquer comme rendu',returnDate:'Date de retour',assignDate:'Date d’attribution',available:'Disponible',lastDone:'Dernier passage',never:'Jamais',history:'Historique',terDup:'Ce numéro existe déjà.',over12:'Plus de 12 mois',noTer:'Aucun territoire.',chooseP:'Choisissez un proclamateur',
+ backup:'Sauvegarde des données',bkJson:'Télécharger la sauvegarde complète',bkPubs:'Liste des proclamateurs (Excel)',bkRep:'Rapports de l’année de service (Excel)',bkLast:'Dernière sauvegarde',bkNever:'jamais',bkWarn:'Le fichier contient des données personnelles. Gardez-le en lieu sûr.',
+ svcType:'Genre de service',assignedN:'Territoires attribués',needSql:'Les nouvelles fonctions demandent le SQL partie 3 (pas encore exécuté).',copyHelp:'Tout sélectionner et copier :'});
+const fmtShort=s=>{if(!s)return'';return new Date(s+'T00:00:00').toLocaleDateString(S.lang==='en'?'en-GB':'fr-FR',{day:'numeric',month:'short',year:'numeric'})};
+const today=()=>new Date().toISOString().slice(0,10);
+const catOf=(p,r)=>{const k=(r&&r.pt)||p.type||'pub';return['pub','ap','rp','sp'].includes(k)?k:'pub'};
+/* ----- resume mensuel ----- */
+function sumData(y,m){const act=S.pubs.filter(p=>p.active!==false),ym=ymKey(y,m);
+ const C={pub:{l:0,n:0,s:0,h:0},ap:{l:0,n:0,s:0,h:0},rp:{l:0,n:0,s:0,h:0},sp:{l:0,n:0,s:0,h:0}};
+ act.forEach(p=>{const r=rep(p.id,y,m),c=C[catOf(p,r)];c.l++;if(r&&r.shared){c.n++;c.s+=+r.studies||0;c.h+=(+r.hours||0)+(+r.credit||0)}});
+ const miss=act.filter(p=>!rep(p.id,y,m)).sort((a,b)=>a.name.localeCompare(b.name));
+ const at=kd=>{const l=S.att.filter(a=>a.date.startsWith(ym)&&a.kind===kd);return{n:l.length,avg:l.length?Math.round(l.reduce((s,a)=>s+a.count,0)/l.length):null}};
+ return{C,miss,mid:at('mid'),wk:at('wk'),act}}
+function sumText(){const[y,m]=rm,d=sumData(y,m),L=[`${CG().name} — ${t('months')[m-1]} ${y}`];
+ ['pub','ap','rp','sp'].forEach(k=>{const c=d.C[k];L.push(`${t(k)}: ${c.n} ${t('reportsCount').toLowerCase()}, ${c.s} ${t('studies').toLowerCase()}, ${c.h} h`)});
+ L.push(`${t('midweek')}: ${d.mid.avg==null?'—':d.mid.avg} (${d.mid.n})`,`${t('weekend')}: ${d.wk.avg==null?'—':d.wk.avg} (${d.wk.n})`);return L.join('\n')}
+function copySum(){const x=sumText();const fb=()=>modal(`<p class=mut>${t('copyHelp')}</p><textarea id=cpT rows=8 readonly onfocus="this.select()">${esc(x)}</textarea><div class=row style="margin-top:10px"><button class=sec onclick="closeM()">OK</button></div>`);
+ try{navigator.clipboard.writeText(x).then(()=>toast(t('copied')),fb)}catch(e){fb()}}
+function vSummary(){if(!rm){const[a,b]=nowYM();rm=[a,b]}const[y,m]=rm,sy=svcYearOf(y,m),d=sumData(y,m);
+ const opts=syMonths(sy).map(([yy,mm])=>`<option value="${yy}-${mm}" ${yy===y&&mm===m?'selected':''}>${t('months')[mm-1]} ${yy}</option>`).join('');
+ const tot=['l','n','s','h'].map(k=>d.C.pub[k]+d.C.ap[k]+d.C.rp[k]+d.C.sp[k]);
+ return `<div class=row><select style="width:auto" onchange="rm=this.value.split('-').map(Number);render()">${opts}</select><span class=sp></span><button class="sm sec" onclick="copySum()">${t('copyText')}</button><button class="sm sec" onclick="print()">${t('printB')}</button></div>
+ <div class=card><h3>${esc(CG().name)} · ${t('months')[m-1]} ${y}</h3><table><tr><th>${t('byType')}</th><th>${t('listed')}</th><th>${t('reportsCount')}</th><th>${t('studies')}</th><th>${t('hours')}</th></tr>
+ ${['pub','ap','rp','sp'].map(k=>`<tr><td>${t(k)}</td><td>${d.C[k].l}</td><td>${d.C[k].n}</td><td>${d.C[k].s}</td><td>${d.C[k].h}</td></tr>`).join('')}<tr><th>${t('total')}</th><th>${tot[0]}</th><th>${tot[1]}</th><th>${tot[2]}</th><th>${tot[3]}</th></tr></table></div>
+ <div class=card><h3>${t('attAvg')}</h3><table><tr><th></th><th>${t('meetings')}</th><th>${t('avg')}</th></tr><tr><td>${t('midweek')}</td><td>${d.mid.n}</td><td>${d.mid.avg==null?'—':d.mid.avg}</td></tr><tr><td>${t('weekend')}</td><td>${d.wk.n}</td><td>${d.wk.avg==null?'—':d.wk.avg}</td></tr></table></div>
+ <div class=card><h3>${t('notReported')} (${d.miss.length})</h3>${d.miss.length?d.miss.map(p=>`<div class=item onclick="openRep('${p.id}')"><div class=sp>${esc(p.name)}<div class=mut>${esc(groupName(p.group))}</div></div></div>`).join(''):'<div class=mut>✓</div>'}</div>`}
+/* ----- assistance aux reunions ----- */
+let ay=null;
+function vAtt(){ay=ay||curSY();const rows=S.att.filter(a=>{const[yy,mm]=a.date.split('-').map(Number);return svcYearOf(yy,mm)===ay});
+ const mo=syMonths(ay).map(([yy,mm])=>{const k=ymKey(yy,mm),f=kd=>{const l=rows.filter(a=>a.date.startsWith(k)&&a.kind===kd);return{n:l.length,avg:l.length?Math.round(l.reduce((s,a)=>s+a.count,0)/l.length):null}};return{yy,mm,mid:f('mid'),wk:f('wk')}});
+ const ya=kd=>{const v=mo.map(x=>x[kd].avg).filter(v=>v!=null);return v.length?Math.round(v.reduce((a,b)=>a+b,0)/v.length):'—'};
+ const cell=c=>c.n?`${c.n}</td><td>${c.avg}`:`</td><td>`;
+ return `<div class=row><select style="width:auto" onchange="ay=+this.value;render()">${[curSY()-2,curSY()-1,curSY()].map(y=>`<option value=${y} ${y===ay?'selected':''}>${y+1} (${y}–${y+1})</option>`).join('')}</select><span class=sp></span>${isCom()?`<button onclick="attForm()">+ ${t('addAtt')}</button>`:''}</div>
+ <div class=card><table><tr><th rowspan=2>${t('month')}</th><th colspan=2>${t('midweek')}</th><th colspan=2>${t('weekend')}</th></tr><tr><th>#</th><th>${t('avg')}</th><th>#</th><th>${t('avg')}</th></tr>
+ ${mo.map(x=>`<tr><td>${t('months')[x.mm-1]} ${x.yy}</td><td>${cell(x.mid)}</td><td>${cell(x.wk)}</td></tr>`).join('')}<tr><th>${t('attYear')}</th><th></th><th>${ya('mid')}</th><th></th><th>${ya('wk')}</th></tr></table></div>
+ <div class=card>${rows.length?[...rows].sort((a,b)=>b.date.localeCompare(a.date)).map(a=>`<div class=item ${isCom()?`onclick="attForm('${a.id}')"`:''}><div class=sp><b>${fmtDate(a.date)}</b><div class=mut>${t(a.kind==='wk'?'weekend':'midweek')}</div></div><b>${a.count}</b></div>`).join(''):`<div class=mut>${t('noAtt')}</div>`}</div>`}
+function attForm(id){const a=S.att.find(x=>x.id===id)||{date:today(),kind:'mid',count:''};
+ modal(`<h3>${id?t('edit'):t('addAtt')}</h3><label>${t('date')}</label><input id=aD type=date value="${a.date}"><label>${t('type')}</label><select id=aK><option value=mid ${a.kind==='mid'?'selected':''}>${t('midweek')}</option><option value=wk ${a.kind==='wk'?'selected':''}>${t('weekend')}</option></select>
+ <label>${t('attCount')}</label><input id=aC type=number min=0 inputmode=numeric value="${esc(a.count)}">
+ <div class=row style="margin-top:12px"><button onclick="saveAtt()">${t('save')}</button><button class=sec onclick="closeM()">${t('cancel')}</button><span class=sp></span>${id?`<button class="bad sm" onclick="delAtt('${id}')">${t('del')}</button>`:''}</div>`)}
+function saveAtt(){const d=$('#aD').value,k=$('#aK').value,c=parseInt($('#aC').value);if(!d||isNaN(c)||c<0)return $('#aC').focus();
+ let a=S.att.find(x=>x.date===d&&x.kind===k);if(a)a.count=c;else{a={id:uid(),date:d,kind:k,count:c};S.att.push(a)}
+ closeM();toast(t('saved'));render();
+ wr(()=>ins('meeting_attendance?on_conflict=congregation_id,mdate,kind',{id:a.id,congregation_id:S.cg.id,mdate:d,kind:k,count:c,updated_at:new Date().toISOString()},{Prefer:'resolution=merge-duplicates,return=minimal'}))}
+function delAtt(id){if(delArm!==id){delArm=id;toast(t('confirmDel'));return}delArm=null;S.att=S.att.filter(x=>x.id!==id);closeM();render();wr(()=>del('meeting_attendance','id=eq.'+id))}
+/* ----- fiche de proclamateur ----- */
+function printM(){document.body.classList.add('pm');setTimeout(()=>{try{print()}finally{document.body.classList.remove('pm')}},50)}
+function fiche(id){const p=S.pubs.find(x=>x.id===id);ry=ry||curSY();let th=0,ts=0,n=0;
+ const rows=syMonths(ry).map(([y,m])=>{const r=rep(id,y,m);if(r){n+=r.shared?1:0;th+=(+r.hours||0)+(+r.credit||0);ts+=+r.studies||0}
+  return `<tr><td>${t('months')[m-1]} ${y}</td><td>${r?(r.shared?'✓':'✗'):''}</td><td>${r?r.studies||'':''}</td><td>${r&&(r.hours||r.credit)?(+r.hours||0)+(+r.credit||0):''}</td><td>${r?esc(r.remarks||''):''}</td></tr>`}).join('');
+ const f=(l,v)=>`<tr><td style="width:42%"><span class=mut>${l}</span></td><td style="text-align:left">${v?esc(v):'&nbsp;'}</td></tr>`;
+ modal(`<h3 style="margin:0">${t('ficheT')}</h3><div class=mut>${esc(CG().name)}</div>
+ <table style="margin:8px 0">${f(t('name'),p.name)}${f(t('birth'),p.birth?fmtShort(p.birth):'')}${f(t('bapt'),p.bapt?fmtShort(p.bapt):'')}${f(t('hope'),p.hope?t('hope_'+p.hope):'')}${f(t('cat'),t('cat_'+(p.cat||'publisher')))}${f(t('svcType'),typeLabel(p))}${f(t('group'),groupName(p.group))}${f(t('phone'),p.phone)}${f(t('addr'),p.addr)}${f(t('emerg'),p.emerg)}</table>
+ <div class=row style="margin:8px 0"><label style="margin:0">${t('year')}</label><select style="width:auto" onchange="ry=+this.value;fiche('${id}')">${[curSY()-2,curSY()-1,curSY(),curSY()+1].map(y=>`<option value=${y} ${y===ry?'selected':''}>${y+1} (${y}–${y+1})</option>`).join('')}</select></div>
+ <table><tr><th>${t('month')}</th><th>${t('shared')}</th><th>${t('studies')}</th><th>${t('hours')}</th><th>${t('remarks')}</th></tr>${rows}<tr><th>${t('total')}</th><th>${n}</th><th>${ts}</th><th>${th}</th><th></th></tr></table>
+ <div class=row style="margin-top:12px"><button onclick="exportS21(pubCards('${id}'))">${t('pdfS21')}</button><button class=sec onclick="printM()">${t('printB')}</button><button class=sec onclick="pubCard('${id}')">←</button></div>`)}
+/* ----- territoires ----- */
+const yearAgo=d=>!d||(Date.now()-new Date(d+'T00:00:00'))>365*864e5;
+function terSt(x){const as=S.tas.filter(a=>a.ter===x.id),cur=as.find(a=>!a.to),done=as.filter(a=>a.to).map(a=>a.to).sort().pop()||'';return{as,cur,done}}
+function vTer(){const l=[...S.ter].sort((a,b)=>a.num.localeCompare(b.num,undefined,{numeric:true}));let av=0,as=0,old=0;
+ const items=l.map(x=>{const s=terSt(x);if(s.cur)as++;else av++;const lt=!s.cur&&yearAgo(s.done);if(lt)old++;
+  return `<div class=item onclick="terCard('${x.id}')"><div class=av style="font-size:13px">${esc(x.num)}</div><div class=sp>${esc(x.name||'')}<div class="mut ${lt?'late':''}">${s.cur?`${t('assignedTo')} ${esc(pubName(s.cur.pub)||'?')} · ${t('since')} ${fmtShort(s.cur.from)}`:`${t('lastDone')}: ${s.done?fmtShort(s.done):t('never')}`}</div></div></div>`}).join('');
+ return `<div class=row><button class="sm sec" onclick="sub=null;render()">← ${t('back')}</button><h3 class=sp style="margin:0">${t('territories')}</h3>${isCom()?`<button class=sm onclick="terForm()">+ ${t('add')}</button>`:''}</div>
+ <div class=grid style="margin-top:10px"><div class=stat><b>${as}/${l.length}</b>${t('assignedN')}</div><div class=stat><b class=late>${old}</b>${t('over12')}</div></div>
+ <div class=card>${l.length?items:`<div class=mut>${t('noTer')}</div>`}</div>`}
+function terCard(id){const x=S.ter.find(v=>v.id===id),s=terSt(x),com=isCom();
+ const po=S.pubs.filter(p=>p.active!==false).sort((a,b)=>a.name.localeCompare(b.name)).map(p=>`<option value=${p.id}>${esc(p.name)}</option>`).join('');
+ modal(`<div class=row><div class=av style="font-size:13px">${esc(x.num)}</div><div class=sp><h3 style="margin:0">${esc(x.name||x.num)}</h3>${x.notes?`<div class=mut>${esc(x.notes)}</div>`:''}</div>${com?`<button class="sm sec" onclick="terForm('${id}')">${t('edit')}</button>`:''}</div>
+ ${s.cur?`<div class=card><b>${t('assignedTo')} ${esc(pubName(s.cur.pub)||'?')}</b><div class=mut>${t('since')} ${fmtShort(s.cur.from)}</div>${com?`<label>${t('returnDate')}</label><input id=tR type=date value="${today()}"><div class=row style="margin-top:8px"><button onclick="retTer('${s.cur.id}','${id}')">${t('returnT')}</button></div>`:''}</div>`
+  :com?`<div class=card><div class=mut>${t('available')} · ${t('lastDone')}: ${s.done?fmtShort(s.done):t('never')}</div><label>${t('assignedTo')}</label><select id=tP><option value="">${t('chooseP')}</option>${po}</select><label>${t('assignDate')}</label><input id=tD type=date value="${today()}"><div class=row style="margin-top:8px"><button onclick="assignTer('${id}')">${t('assign')}</button></div></div>`:`<div class=mut>${t('available')}</div>`}
+ <h3 style="margin-top:12px">${t('history')}</h3>${s.as.length?`<table><tr><th>${t('name')}</th><th>${t('assignDate')}</th><th>${t('returnDate')}</th></tr>${s.as.map(a=>`<tr><td>${esc(pubName(a.pub)||'?')}</td><td>${fmtShort(a.from)}</td><td>${a.to?fmtShort(a.to):''}</td></tr>`).join('')}</table>`:`<div class=mut>—</div>`}
+ <div class=row style="margin-top:12px"><button class=sec onclick="closeM()">OK</button></div>`)}
+function assignTer(id){const p=$('#tP').value,d=$('#tD').value;if(!p||!d)return toast(t('chooseP'));const a={id:uid(),ter:id,pub:p,from:d,to:'',notes:''};S.tas.unshift(a);
+ closeM();toast(t('saved'));render();wr(()=>ins('territory_assignments',{id:a.id,congregation_id:S.cg.id,territory_id:id,publisher_id:p,assigned_on:d}))}
+function retTer(aid,id){const d=$('#tR').value||today(),a=S.tas.find(x=>x.id===aid);a.to=d;closeM();toast(t('saved'));render();wr(()=>updw('territory_assignments','id=eq.'+aid,{returned_on:d}))}
+function terForm(id){const x=S.ter.find(v=>v.id===id)||{num:'',name:'',notes:''};
+ modal(`<h3>${id?t('edit'):t('newTer')}</h3><label>${t('terNo')}</label><input id=tN value="${esc(x.num)}"><label>${t('terName')}</label><input id=tNm value="${esc(x.name)}"><label>${t('notes')}</label><textarea id=tNo rows=2>${esc(x.notes)}</textarea>
+ <div class=row style="margin-top:12px"><button onclick="saveTer('${id||''}')">${t('save')}</button><button class=sec onclick="closeM()">${t('cancel')}</button><span class=sp></span>${id?`<button class="bad sm" onclick="delTer('${id}')">${t('del')}</button>`:''}</div>`)}
+function saveTer(id){const num=$('#tN').value.trim(),name=$('#tNm').value.trim(),notes=$('#tNo').value.trim();if(!num)return $('#tN').focus();
+ if(S.ter.some(v=>v.num.toLowerCase()===num.toLowerCase()&&v.id!==id))return toast(t('terDup'));
+ let x;if(id){x=S.ter.find(v=>v.id===id);Object.assign(x,{num,name,notes})}else{x={id:uid(),num,name,notes};S.ter.push(x)}
+ closeM();toast(t('saved'));render();wr(()=>id?updw('territories','id=eq.'+id,{number:num,name:name||null,notes:notes||null}):ins('territories',{id:x.id,congregation_id:S.cg.id,number:num,name:name||null,notes:notes||null}))}
+function delTer(id){if(delArm!==id){delArm=id;toast(t('confirmDel'));return}delArm=null;S.ter=S.ter.filter(v=>v.id!==id);S.tas=S.tas.filter(a=>a.ter!==id);closeM();render();wr(()=>del('territories','id=eq.'+id))}
+/* ----- sauvegarde / export ----- */
+function vBackup(){const lb=ls('theoapp.lastbk');return `<div class=card><h3>${t('backup')}</h3><div class=mut>${t('bkLast')}: ${lb?fmtShort(lb):t('bkNever')}</div><div class=row style="margin-top:8px"><button onclick="dlBackup()">${t('bkJson')}</button></div>
+ <div class=row style="margin-top:8px"><select id=bkY style="width:auto">${[curSY()-1,curSY(),curSY()+1].map(y=>`<option value=${y} ${y===curSY()?'selected':''}>${y+1} (${y}–${y+1})</option>`).join('')}</select><button onclick="exportS21All()">${t('bkS21')}</button></div>
+ <div class=row style="margin-top:8px"><button class=sec onclick="dlPubs()">${t('bkPubs')}</button><button class=sec onclick="dlReps()">${t('bkRep')}</button></div><p class=mut>${t('bkWarn')}</p></div>`}
+function dl(name,text,mime){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([text],{type:mime}));a.download=name;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},1500)}
+const csv=rows=>'﻿'+rows.map(r=>r.map(v=>{v=v==null?'':String(v);return /[;"\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v}).join(';')).join('\r\n');
+const fname=k=>(CG().name||'cong').replace(/[^a-z0-9]+/gi,'_')+'_'+k+'_'+today();
+function dlBackup(){const d={app:'TheoApp',version:5,exported:new Date().toISOString(),congregation:{name:CG().name,number:CG().number,city:CG().city},groups:S.groups,publishers:S.pubs,
+  reports:Object.keys(S.reports).map(k=>Object.assign({publisher:k.split('|')[0],month:k.split('|')[1]},S.reports[k])),meetings:S.meetings,attendance:S.att,territories:S.ter,assignments:S.tas};
+ dl(fname('sauvegarde')+'.json',JSON.stringify(d,null,1),'application/json');ls('theoapp.lastbk',today());render()}
+function dlPubs(){const h=['Nom','Téléphone','Type','Catégorie','Groupe','Baptisé','Actif','Naissance','Baptême','Adresse','Urgence'];
+ dl(fname('proclamateurs')+'.csv',csv([h].concat(S.pubs.map(p=>[p.name,p.phone,typeLabel(p),t('cat_'+(p.cat||'publisher')),groupName(p.group),p.baptized?'oui':'non',p.active!==false?'oui':'non',p.birth,p.bapt,p.addr,p.emerg]))),'text/csv')}
+function dlReps(){const sy=curSY(),h=['Nom','Mois','Rapport','Études','Heures','Crédit','Remarques'],rows=[];
+ S.pubs.slice().sort((a,b)=>a.name.localeCompare(b.name)).forEach(p=>syMonths(sy).forEach(([y,m])=>{const r=rep(p.id,y,m);if(r)rows.push([p.name,ymKey(y,m),r.shared?'oui':'non',r.studies,r.hours,r.credit,r.remarks])}));
+ dl(fname('rapports_'+sy)+'.csv',csv([h].concat(rows)),'text/csv')}
+/* ================= Fiche S-21 : remplissage du modele officiel (PDF) ================= */
+Object.assign(T.en,{pdfS21:'Export PDF (form S-21)',pdfWait:'Preparing the PDF…',pdfErr:'The PDF could not be made. A connection is needed the first time.',bkS21:'All record cards (PDF, 2 per page)',gender:'Sex',male:'Male',female:'Female',missionary:'Missionary assigned in the territory',needSql4:'Sex and missionary need SQL part 4 (not run yet).'});
+Object.assign(T.fr,{pdfS21:'Exporter en PDF (modèle S-21)',pdfWait:'Préparation du PDF…',pdfErr:'Le PDF n’a pas pu être créé. Une connexion est nécessaire la première fois.',bkS21:'Toutes les fiches (PDF, 2 par page)',gender:'Sexe',male:'Homme',female:'Femme',missionary:'Missionnaire affecté dans le territoire',needSql4:'Sexe et missionnaire demandent le SQL partie 4 (pas encore exécuté).'});
+let _pl=null;
+function loadPdfLib(){if(window.PDFLib)return Promise.resolve();return _pl||(_pl=new Promise((ok,ko)=>{const s=document.createElement('script');s.src='pdf-lib.min.js';s.onload=ok;s.onerror=()=>{_pl=null;ko(new Error('pdf-lib'))};document.head.appendChild(s)}))}
+const sf=s=>String(s==null?'':s).replace(/[^\x20-\x7E\xA0-\xFF’‘“”–—…]/g,c=>c.normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^\x20-\x7E]/g,'?'));
+const dmy=s=>{if(!s)return'';const[a,b,c]=s.split('-');return c+'/'+b+'/'+a};
+const TPL={fr:{multi:'s21_fr_multi.pdf',single:'s21_fr.pdf'},en:{multi:'s21_en_multi.pdf',single:'s21_en.pdf'}};   /* autres langues : ajouter ici (meme mise en page) */
+function tplLang(){let c=S.lang;for(let i=0;i<5&&c;i++){if(TPL[c])return c;const l=getL(c);c=l&&l.fb}return 'fr'}
+const GEO={multi:{r0:158.4,pitch:17.75,cy:8.6,base:12.6,tot:384.4,sz:9,yr:152,dy2:421.0},single:{r0:199.8,pitch:19.82,cy:9.8,base:14.2,tot:451.6,sz:10,yr:192,dy2:0}};
+const HDR={
+ 'fr:multi':{nm:[56,47.4],bd:[130,62.4],bp:[124,76.9],gy:58.9,hy:73.4,py:87.8,el:21.7,ms:89.4,rp:167.9,sp:303.1,mi:[21.7,99.0]},
+ 'en:multi':{nm:[58,50.1],bd:[96,64.5],bp:[111,79.0],gy:58.9,hy:73.4,py:87.8,el:21.7,ms:85.3,rp:220.7,sp:341,mi:[459.5,87.8]},
+ 'fr:single':{nm:[56,76.0],bd:[130,92.1],bp:[124,108.4],gy:88.0,hy:104.2,py:120.3,el:21.7,ms:89.3,rp:167.8,sp:303.1,mi:[21.7,132.8]},
+ 'en:single':{nm:[58,78.3],bd:[96,94.4],bp:[111,110.6],gy:88.0,hy:104.2,py:120.3,el:21.7,ms:85.3,rp:220.7,sp:340.9,mi:[459.4,120.3]}};
+function pubYears(p){const s=new Set();Object.keys(S.reports).forEach(k=>{if(k.startsWith(p.id+'|')){const[y,m]=k.split('|')[1].split('-').map(Number);s.add(svcYearOf(y,m))}});const a=[...s].sort();return a.length?a:[curSY()]}
+function fillCard(pg,font,bold,rgb,p,sy,g,h,lang,dy){const H=841.9,K=rgb(0,0,0);
+ const Y=ty=>H-(ty+dy);
+ const X=(cx,cy)=>{const y=Y(cy);[[-3.6,0,-1.2,-3],[-1.2,-3,4,4]].forEach(l=>pg.drawLine({start:{x:cx+l[0],y:y+l[1]},end:{x:cx+l[2],y:y+l[3]},thickness:1.5,color:K}))};
+ const txt=(s,x,base,size,maxw,center,f)=>{f=f||font;s=sf(s);if(!s)return;while(size>5.5&&f.widthOfTextAtSize(s,size)>maxw)size-=.5;while(s.length>1&&f.widthOfTextAtSize(s,size)>maxw)s=s.slice(0,-1);
+  const w=f.widthOfTextAtSize(s,size);pg.drawText(s,{x:center?x-w/2:x,y:Y(base),size,font:f,color:K})};
+ txt(p.name,h.nm[0],h.nm[1],11,320);txt(dmy(p.birth),h.bd[0],h.bd[1],10,200);txt(dmy(p.bapt),h.bp[0],h.bp[1],10,200);
+ if(p.gender==='m')X(388.9,h.gy);if(p.gender==='f')X(490.3,h.gy);
+ if(p.hope==='other_sheep')X(388.9,h.hy);if(p.hope==='anointed')X(490.3,h.hy);
+ if(p.cat==='elder')X(h.el,h.py);if(p.cat==='ms')X(h.ms,h.py);if(p.type==='rp')X(h.rp,h.py);if(p.type==='sp')X(h.sp,h.py);if(p.miss)X(h.mi[0],h.mi[1]);
+ txt(String(sy+1),59.5,g.yr,10,80,true,bold);
+ let th=0,any=false;
+ syMonths(sy).forEach(([y,m],i)=>{const r=rep(p.id,y,m);if(!r)return;const top=g.r0+i*g.pitch,base=top+g.base;
+  if(r.shared)X(136.5,top+g.cy);
+  if((r.pt||p.type)==='ap')X(277.7,top+g.cy);
+  if(+r.studies)txt(String(+r.studies),207.3,base,g.sz,60,true);
+  const pio=['ap','rp','sp'].includes(r.pt||p.type)||p.miss;
+  if(pio&&+r.hours){th+=+r.hours;any=true;txt(String(+r.hours),348.5,base,g.sz,60,true)}
+  const ob=[r.remarks,pio&&+r.credit?(lang==='fr'?'Crédit ':'Credit ')+(+r.credit)+' h':''].filter(Boolean).join(' · ');
+  if(ob)txt(ob,387.5,base,g.sz-1,186)});
+ if(any)txt(String(Math.round(th*100)/100),348.8,g.tot,g.sz+.5,60,true)}
+/* cards = [{id,sy}, ...] ; 1 seule fiche et modele "1 par page" disponible -> page entiere, sinon 2 par page */
+async function exportS21(cards){toast(t('pdfWait'));
+ try{await loadPdfLib();const{PDFDocument,StandardFonts,rgb}=PDFLib,lang=tplLang(),tp=TPL[lang],single=cards.length===1&&tp.single,kind=single?'single':'multi';
+  const r=await fetch(tp[kind]);if(!r.ok)throw new Error('tpl');const bytes=await r.arrayBuffer();
+  const out=await PDFDocument.create(),font=await out.embedFont(StandardFonts.Helvetica),bold=await out.embedFont(StandardFonts.HelveticaBold),g=GEO[kind],h=HDR[lang+':'+kind];
+  const per=single?1:2;
+  for(let i=0;i<cards.length;i+=per){const src=await PDFDocument.load(bytes),[pg]=await out.copyPages(src,[0]);out.addPage(pg);
+   for(let k=0;k<per&&cards[i+k];k++){const c=cards[i+k];fillCard(pg,font,bold,rgb,S.pubs.find(p=>p.id===c.id),c.sy,g,h,lang,k?g.dy2:0)}}
+  const u8=await out.save(),one=cards.every(c=>c.id===cards[0].id);
+  dl((one?'S-21_'+sf(S.pubs.find(p=>p.id===cards[0].id).name).replace(/[^a-z0-9]+/gi,'_'):fname('fiches_S21'))+'_'+cards[0].sy+(cards.length>1&&one?'-'+cards[cards.length-1].sy:'')+'.pdf',u8,'application/pdf')
+ }catch(e){toast(t('pdfErr'))}}
+const pubCards=id=>pubYears(S.pubs.find(p=>p.id===id)).map(sy=>({id,sy}));
+function exportS21All(){const sy=+($('#bkY')||{}).value||curSY();exportS21(S.pubs.filter(p=>p.active!==false).sort((a,b)=>a.name.localeCompare(b.name)).map(p=>({id:p.id,sy})))}
+
 function nextStage(){clearTimeout(window._st);stage++;render();if(stage===1)window._st=setTimeout(nextStage,7500)}
 window._st=setTimeout(nextStage,4000);
 addEventListener('visibilitychange',()=>{if(!document.hidden)sync()});
