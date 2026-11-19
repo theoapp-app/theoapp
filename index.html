@@ -155,7 +155,7 @@ const rpc=(n,a)=>api('/rest/v1/rpc/'+n,{method:'POST',body:a||{}});
 const MIN={Prefer:'return=minimal'};
 /* ----- file d'attente : les modifications faites sans connexion sont gardees sur le telephone puis envoyees ----- */
 const QK='theoapp.q';let Q=ls(QK)||[];
-function snap(){ls(SNAP,{me:S.me,cg:S.cg,owner:S.owner,groups:S.groups,pubs:S.pubs,reports:S.reports,meetings:S.meetings,users:S.users,pioreq:S.pioreq,invites:S.invites,att:S.att,ter:S.ter,tas:S.tas,v3:S.v3,v4:S.v4,v5:S.v5,ann:S.ann,ph:S.ph,state:'ok'})}
+function snap(){ls(SNAP,{me:S.me,cg:S.cg,owner:S.owner,groups:S.groups,pubs:S.pubs,reports:S.reports,meetings:S.meetings,users:S.users,pioreq:S.pioreq,invites:S.invites,att:S.att,ter:S.ter,tas:S.tas,v3:S.v3,v4:S.v4,v5:S.v5,v6:S.v6,dcats:S.dcats,docs:S.docs,ann:S.ann,ph:S.ph,state:'ok'})}
 function enq(p,o){Q.push({p,o,u:A&&A.uid});ls(QK,Q);snap();toast(t('queued'));if(!S.offline)setTimeout(()=>sync(true),300)}
 async function qrest(p,o){if(navigator.onLine===false)S.offline=true;if(S.offline||Q.length){enq(p,o);return null}
  try{return await rest(p,o)}catch(e){if(e.net){S.offline=true;enq(p,o);return null}throw e}}
@@ -203,10 +203,10 @@ async function pull(){
  const R=await Promise.all([rest('groups?select=id,name,overseer_id&order=name'),pageAll('publishers?select=*&order=full_name'),pageAll('reports?select=*&ym=gte.'+since),
   rest('meetings?select=id,mdate,kind,meeting_items(role,person_id,pos)&mdate=gte.'+d90+'&order=mdate.desc'),rest('profiles?select=id,identifier,full_name,category,functions,status&order=full_name'),
   rest('pioneer_requests?select=id,publisher_id,kind,status&status=eq.pending'),adm?rpc('list_invitations'):Promise.resolve([]),
-  opt(pageAll('meeting_attendance?select=*&mdate=gte.'+(curSY()-1)+'-09-01&order=mdate.desc')),opt(pageAll('territories?select=*&order=number')),opt(pageAll('territory_assignments?select=*&order=assigned_on.desc')),opt(rest('publishers?select=gender,missionary&limit=1')),opt(pageAll('announcements?select=*&order=created_at.desc')),wantPh?opt(pageAll('publisher_photos?select=publisher_id,photo')):Promise.resolve(undefined),opt(rpc('liste_proclamateurs'))]);
+  opt(pageAll('meeting_attendance?select=*&mdate=gte.'+(curSY()-1)+'-09-01&order=mdate.desc')),opt(pageAll('territories?select=*&order=number')),opt(pageAll('territory_assignments?select=*&order=assigned_on.desc')),opt(rest('publishers?select=gender,missionary&limit=1')),opt(pageAll('announcements?select=*&order=created_at.desc')),wantPh?opt(pageAll('publisher_photos?select=publisher_id,photo')):Promise.resolve(undefined),opt(rpc('liste_proclamateurs')),opt(pageAll('doc_categories?select=*&order=created_at')),opt(pageAll('documents?select=*&order=doc_date.desc'))]);
  S.groups=(R[0]||[]).map(g=>({id:g.id,name:g.name,overseer:g.overseer_id||''}));
  S.pubs=(R[1]||[]).map(x=>({id:x.id,name:x.full_name,phone:x.phone||'',type:PT[x.pioneer]||'pub',cat:x.category,baptized:x.baptized!==false,active:x.active!==false,group:x.group_id||'',notes:x.notes||'',uid:x.user_id||'',birth:x.birth_date||'',bapt:x.baptism_date||'',addr:x.address||'',hope:x.hope||'',emerg:x.emergency||'',gender:x.gender||'',miss:!!x.missionary,first:x.first_name||'',middle:x.middle_name||'',phones:Array.isArray(x.phones)?x.phones:[],last:x.last_name||'',marital:x.marital||'',spouse:x.spouse||'',marr:x.marriage_date||''}));
- S.v5=R[11]!==null;
+ S.v5=R[11]!==null;S.v6=R[14]!==null;S.dcats=(R[14]||[]).map(c=>({id:c.id,name:c.name}));S.docs=(R[15]||[]).map(d=>({id:d.id,cat:d.cat,title:d.title,body:d.body||'',date:d.doc_date,author:d.author_name||''}));
  if(R[12]!==undefined){S.ph={};(R[12]||[]).forEach(r=>{S.ph[r.publisher_id]=r.photo});S._phAt=Date.now()}
  S.ph=S.ph||{};
  if(R[13]){const have=new Set(S.pubs.map(p=>p.id));R[13].forEach(x=>{if(!have.has(x.id))S.pubs.push({id:x.id,name:x.full_name,first:x.first_name||'',last:x.last_name||'',type:PT[x.pioneer]||'pub',cat:x.category,baptized:true,active:x.active!==false,group:x.group_id||'',notes:'',uid:'',limited:true})})}
@@ -268,7 +268,7 @@ function pubName(id){const p=S.pubs.find(x=>x.id===id);return p?p.name:''}
 function isPioneer(p){return p.type==='ap'||p.type==='rp'||p.type==='sp'}
 function fmtDate(s){if(!s)return'';const d=new Date(s+'T00:00:00');return d.toLocaleDateString(S.lang==='en'?'en':'fr',{weekday:'short',day:'numeric',month:'short',year:'numeric'})}
 /* views */
-const ICN={home:'<path d="M3 11l9-8 9 8M5 10v10h14V10"/>',preacher:'<circle cx="12" cy="6" r="3"/><path d="M3 13c3-1.5 6-1.5 9 0 3-1.5 6-1.5 9 0v8c-3-1.5-6-1.5-9 0-3-1.5-6-1.5-9 0z"/><path d="M12 13v8"/>',act:'<path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M13 7l4 4"/>',cal:'<rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 2v4M16 2v4"/>',menu:'<path d="M4 6h16M4 12h16M4 18h16"/>',gear:'<circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M19 5l-2 2M7 17l-2 2"/>',user:'<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>',house:'<path d="M4 21V9l8-5 8 5v12M9 21v-6h6v6"/>',back:'<path d="M15 5l-7 7 7 7"/>',refresh:'<path d="M20 11a8 8 0 1 0-2.3 5.7M20 4v7h-7"/>'};
+const ICN={folder:'<path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>',bell:'<path d="M6 9a6 6 0 0 1 12 0c0 6 2 7 2 7H4s2-1 2-7M10 20a2 2 0 0 0 4 0"/>',shield:'<path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/>',home:'<path d="M3 11l9-8 9 8M5 10v10h14V10"/>',preacher:'<circle cx="12" cy="6" r="3"/><path d="M3 13c3-1.5 6-1.5 9 0 3-1.5 6-1.5 9 0v8c-3-1.5-6-1.5-9 0-3-1.5-6-1.5-9 0z"/><path d="M12 13v8"/>',act:'<path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M13 7l4 4"/>',cal:'<rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 2v4M16 2v4"/>',menu:'<path d="M4 6h16M4 12h16M4 18h16"/>',gear:'<circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M19 5l-2 2M7 17l-2 2"/>',user:'<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>',house:'<path d="M4 21V9l8-5 8 5v12M9 21v-6h6v6"/>',back:'<path d="M15 5l-7 7 7 7"/>',refresh:'<path d="M20 11a8 8 0 1 0-2.3 5.7M20 4v7h-7"/>'};
 const ic=n=>`<svg class=ic viewBox="0 0 24 24">${ICN[n]}</svg>`;
 const avh=(name,photo,sz)=>`<div class=av ${sz?`style="width:${sz}px;height:${sz}px;font-size:${Math.round(sz*.44)}px"`:''}>${photo?`<img src="${photo}" alt="">`:esc((name||'?')[0])}</div>`;
 const canPhoto=()=>isAdm();
@@ -329,16 +329,69 @@ function annForm(){modal(`<h3>${t('newAnn')}</h3><label>${t('annTitle')}</label>
 function saveAnn(){const ti=$('#aT').value.trim(),bo=$('#aB').value.trim(),d=$('#aD').value;if(!ti)return;if(!guard(1))return;S.ann=S.ann||[];const a={id:uid(),title:ti,body:bo,date:todayS(),author:U().name,until:d==='inf'?'':addDays(+d)};S.ann.push(a);closeM();render();wr(()=>ins('announcements',{id:a.id,congregation_id:S.cg.id,title:ti,body:bo,author_name:a.author,created_on:a.date,until_date:a.until||null}))}
 function stopAnn(id){const a=(S.ann||[]).find(x=>x.id===id);if(a){if(!guard(1))return;a.until=addDays(-1);render();toast(t('withdrawn'));wr(()=>updw('announcements','id=eq.'+id,{until_date:a.until}))}}
 function delAnn(id){if(delArm!==id){delArm=id;toast(t('confirmDel'));return}delArm=null;if(!guard(1))return;S.ann=(S.ann||[]).filter(a=>a.id!==id);render();wr(()=>del('announcements','id=eq.'+id))}
+const DC=['act','att','anc','acc','let','pio','co','hall','ter'];
+const canGest=()=>canPost()||isCom();
+const dcKeys=()=>DC.filter(k=>k!=='acc'||isAdm()).concat((S.dcats||[]).map(c=>'c:'+c.id));
+const dcName=k=>k.slice(0,2)==='c:'?((S.dcats||[]).find(c=>'c:'+c.id===k)||{}).name||'?':t('dc_'+k);
+const docsOf=k=>(S.docs||[]).filter(d=>d.cat===k).sort((a,b)=>b.date.localeCompare(a.date));
 function vManage(){
- if(!canPost())return `<div class=card><div class=mut>—</div></div>`;
- const all=(S.ann||[]).slice().sort((a,b)=>b.date.localeCompare(a.date)),on=all.filter(annOn),off=all.filter(a=>!annOn(a));
+ if(!canGest())return `<div class=card><div class=mut>—</div></div>`;
+ if(sub==='ann'&&canPost())return vAnnPage();
+ if(sub==='adm'&&isAdm())return vAdmin();
+ if(sub&&sub.slice(0,4)==='cat:')return vCat(sub.slice(4));
+ const cn=esc((CG()||{}).name||''),on=(S.ann||[]).filter(annOn).length;
+ const tile=(ico,lbl,sm,act)=>`<div class=card onclick="${act}" style="cursor:pointer"><div class=row>${ic(ico)}<div class=sp style="margin-left:6px"><b>${lbl}</b>${sm?`<div class=mut>${sm}</div>`:''}</div><span class=mut>›</span></div></div>`;
+ return `<h3 style="margin:4px 0 2px">${t('manageT')}</h3><div class=mut style="margin-bottom:10px">${cn}</div>
+ ${canPost()?tile('bell',t('annsT'),on?on+' '+t('active'):'',"sub='ann';render()"):''}
+ ${dcKeys().map(k=>{const n=docsOf(k).length;return tile('folder',esc(dcName(k)),n?n+' '+t('docsN'):'',`sub='cat:${k}';render()`)}).join('')}
+ ${isAdm()?`<div class=row style="margin:6px 0 12px"><button class="sm sec" onclick="catForm()">+ ${t('newCat')}</button></div>`:''}
+ ${isAdm()?tile('shield',t('adminT'),t('adminSub'),"sub='adm';render()"):''}`}
+function vAnnPage(){
+ const all=(S.ann||[]).slice().sort((a,b)=>b.date.localeCompare(a.date)),on=all.filter(annOn);
  const row=(a,live)=>`<div class=note style="border-left-color:${live?'#c2453a':'#aaa'}"><b>${esc(a.title)}</b><div>${esc(a.body)}</div><div class=who>${esc(a.author)} · ${fmtDate(a.date)} · ${live?(a.until?t('until')+' '+fmtDate(a.until):t('noLimit')):t('expired')}</div><div class=row style="margin-top:8px">${live?`<button class="sm sec" onclick="stopAnn('${a.id}')">${t('withdraw')}</button>`:''}<button class="sm bad" onclick="delAnn('${a.id}')">${t('del')}</button></div></div>`;
  const grp={};all.forEach(a=>{const k=a.date.slice(0,7);(grp[k]=grp[k]||[]).push(a)});
  const mlabel=k=>{const d=new Date(k+'-15T00:00:00');return d.toLocaleDateString(S.lang==='en'?'en':'fr',{month:'long',year:'numeric'})};
- return `<h3 style="margin:4px 0 2px">${t('manageT')}</h3><div class=mut style="margin-bottom:10px">${esc((CG()||{}).name||'')}</div>
- <div class=card><div class=row><h3 class=sp style="margin:0">${t('annsT')}</h3><button onclick="annForm()">+ ${t('newAnn')}</button></div>
+ return `<h3 style="margin:4px 0 10px">${t('annsT')}</h3>
+ <div class=card><div class=row><span class=sp></span><button onclick="annForm()">+ ${t('newAnn')}</button></div>
  <div style="margin-top:10px">${on.length?on.map(a=>row(a,true)).join(''):`<div class=mut>${t('noAnn')}</div>`}</div></div>
  <div class=card><h3>${t('history')}</h3>${all.length?Object.keys(grp).sort().reverse().map(k=>`<details style="margin:6px 0"><summary style="cursor:pointer;font-weight:600;text-transform:capitalize">${mlabel(k)} <span class=mut>(${grp[k].length})</span></summary><div style="margin-top:8px">${grp[k].map(a=>row(a,annOn(a))).join('')}</div></details>`).join(''):`<div class=mut>${t('histEmpty')}</div>`}</div>`}
+function vAdmin(){
+ return `<h3 style="margin:4px 0 2px">${t('adminT')}</h3><div class=mut style="margin-bottom:10px">${t('adminSub')}</div>${vMem(true)}${isCom()?vBackup():''}`}
+function vPioTool(){
+ const pr=(S.pioreq||[]).filter(r=>r.status==='pending');
+ return `<div class=card><h3>${t('pioReq')}</h3>${pr.length?pr.map(r=>`<div class=item><div class=sp>${esc(pubName(r.pub))}<div class=mut>${t(r.kind)}</div></div>${isAdm()?`<button class="sm" onclick="decidePio('${r.id}',true)">${t('approve')}</button> <button class="sm sec" onclick="decidePio('${r.id}',false)">${t('refuse')||'✕'}</button>`:''}</div>`).join(''):`<div class=mut>${t('noPioReq')}</div>`}</div>`}
+function vAncTool(){
+ const l=(S.users||[]).filter(u=>u.status!=='pending'&&(u.category==='elder'||u.category==='ms')).sort((a,b)=>(a.category===b.category?0:a.category==='elder'?-1:1)||a.name.localeCompare(b.name));
+ return `<div class=card>${l.length?l.map(u=>`<div class=item><div class=av>${esc(u.name[0]||'?')}</div><div class=sp>${esc(u.name)}<div class=mut>${esc(t('cat_'+u.category))}${u.functions.length?' · '+u.functions.map(f=>esc(t('fn_'+f))).join(', '):''}</div></div></div>`).join(''):`<div class=mut>—</div>`}</div>`}
+function vCat(k){
+ if(!dcKeys().includes(k))return `<div class=card><div class=mut>—</div></div>`;
+ const custom=k.slice(0,2)==='c:',docs=docsOf(k);
+ let tool='';
+ if(k==='act')tool=vReportsAll();
+ else if(k==='att')tool=S.v3?vAtt():`<div class=card><div class=mut>${t('needSql')}</div></div>`;
+ else if(k==='ter')tool=S.v3?vTer(true):`<div class=card><div class=mut>${t('needSql')}</div></div>`;
+ else if(k==='pio')tool=vPioTool();
+ else if(k==='anc')tool=vAncTool();
+ return `<div class=row><h3 class=sp style="margin:4px 0">${esc(dcName(k))}</h3>${custom&&isAdm()?`<button class="sm sec" onclick="catForm('${k.slice(2)}')">${t('edit')}</button>`:''}</div>${tool}
+ <div class=card><div class=row><h3 class=sp style="margin:0">${t('docsT')}</h3><button class=sm onclick="docForm('${k}')">+ ${t('newDoc')}</button></div>
+ <div style="margin-top:8px">${docs.length?docs.map(d=>`<div class=item onclick="docForm('${k}','${d.id}')"><div class=av>${ic('folder')}</div><div class=sp>${esc(d.title)}<div class=mut>${fmtDate(d.date)}${d.author?' · '+esc(d.author):''}</div>${d.body?`<div class=mut style="white-space:pre-wrap">${esc(d.body.length>140?d.body.slice(0,140)+'…':d.body)}</div>`:''}</div></div>`).join(''):`<div class=mut>${t('noDocs')}</div>`}</div></div>`}
+function docForm(k,id){
+ if(!S.v6){toast(t('needSql6'));return}
+ const d=id?(S.docs||[]).find(x=>x.id===id):{title:'',body:'',date:todayS()};if(!d)return;
+ modal(`<h3>${id?t('edit'):t('newDoc')}</h3><div class=mut>${esc(dcName(k))}</div><label>${t('docTitle')}</label><input id=dT value="${esc(d.title)}"><label>${t('date')}</label><input id=dD type=date value="${d.date}"><label>${t('docNote')}</label><textarea id=dB rows=7>${esc(d.body)}</textarea>
+ <div class=row style="margin-top:12px"><button onclick="saveDoc('${k}','${id||''}')">${t('save')}</button><button class=sec onclick="closeM()">${t('cancel')}</button><span class=sp></span>${id?`<button class="bad sm" onclick="delDoc('${id}')">${t('del')}</button>`:''}</div>`)}
+function saveDoc(k,id){const ti=$('#dT').value.trim(),bo=$('#dB').value.trim(),dd=$('#dD').value||todayS();if(!ti){$('#dT').focus();return}if(!guard(1))return;S.docs=S.docs||[];
+ if(id){const d=S.docs.find(x=>x.id===id);Object.assign(d,{title:ti,body:bo,date:dd});closeM();render();wr(()=>updw('documents','id=eq.'+id,{title:ti,body:bo,doc_date:dd}))}
+ else{const d={id:uid(),cat:k,title:ti,body:bo,date:dd,author:U().name};S.docs.push(d);closeM();render();wr(()=>ins('documents',{id:d.id,congregation_id:S.cg.id,cat:k,title:ti,body:bo,doc_date:dd,author_name:d.author}))}}
+function delDoc(id){if(delArm!==id){delArm=id;toast(t('confirmDel'));return}delArm=null;if(!guard(1))return;S.docs=(S.docs||[]).filter(d=>d.id!==id);closeM();render();wr(()=>del('documents','id=eq.'+id))}
+function catForm(id){
+ if(!S.v6){toast(t('needSql6'));return}
+ const c=id?(S.dcats||[]).find(x=>x.id===id):{name:''};
+ modal(`<h3>${id?t('edit'):t('newCat')}</h3><label>${t('catName')}</label><input id=cN value="${esc(c.name)}"><div class=row style="margin-top:12px"><button onclick="saveCat('${id||''}')">${t('save')}</button><button class=sec onclick="closeM()">${t('cancel')}</button><span class=sp></span>${id?`<button class="bad sm" onclick="delCat('${id}')">${t('del')}</button>`:''}</div>`)}
+function saveCat(id){const n=$('#cN').value.trim();if(!n)return;if(!guard(1))return;S.dcats=S.dcats||[];
+ if(id){S.dcats.find(x=>x.id===id).name=n;closeM();render();wr(()=>updw('doc_categories','id=eq.'+id,{name:n}))}
+ else{const c={id:uid(),name:n};S.dcats.push(c);closeM();render();wr(()=>ins('doc_categories',{id:c.id,congregation_id:S.cg.id,name:n}))}}
+function delCat(id){if(docsOf('c:'+id).length){toast(t('catHasDocs'));return}if(delArm!==id){delArm=id;toast(t('confirmDel'));return}delArm=null;if(!guard(1))return;S.dcats=S.dcats.filter(c=>c.id!==id);sub=null;closeM();render();wr(()=>del('doc_categories','id=eq.'+id))}
 function vProfile(){
  const me=myPub(),u=U();if(!u)return'';
  const tags=[];if(u.category&&u.category!=='publisher')tags.push(t('cat_'+u.category));if(me&&isPioneer(me))tags.push(typeLabel(me));fns().forEach(f=>tags.push(t('fn_'+f)));
@@ -354,7 +407,7 @@ function vDrawer(){
  ${it('home',t('home'),"menuGo('home')")}${it('preacher',t('tabPeople'),"menuGo('people')")}${it('act',t('tabAct'),"menuGo('reports')")}${it('cal',t('meetings'),"menuGo('meetings')")}
  <div class=sec2>${t('mySpace')}</div>
  ${it('user',t('profile'),"menuGo('profile')")}${it('gear',t('menuSettings'),"menuGo('settings')")}
- ${canPost()?`<div class=sec2>${t('manageT')}</div>${it('house',esc((CG()||{}).name||t('manageT')),"menuGo('manage')")}`:''}
+ ${canGest()?`<div class=sec2>${t('manageT')}</div>${it('house',esc((CG()||{}).name||t('manageT')),"menuGo('manage')")}`:''}
  <div class=sec2></div>${it('refresh',t('refreshNow'),"S.menu=false;sync(true);toast(t('refreshing'));render()")}
  </div></div>`}
 let gf='';
@@ -399,7 +452,13 @@ function pubCard(id){openCard=id;ry=ry||curSY();const p=S.pubs.find(x=>x.id===id
  ${p.notes?`<p class=mut>${esc(p.notes)}</p>`:''}<div class=row style="margin-top:10px"><button class=sec onclick="closeM()">OK</button></div>`)}
 let rtab='list',mtab='prog';
 function seg(cur,v,items){return `<div class=seg>${items.map(x=>`<button class="${cur===x[0]?'on':''}" onclick="${v}='${x[0]}';render()">${x[1]}</button>`).join('')}</div>`}
-function vReports(){if(!isCom())return vReportsList();return seg(rtab,'rtab',[['list',t('reports')],['sum',t('tabSum')]])+(rtab==='sum'?vSummary():vReportsList())}
+function vReportsAll(){if(!isCom())return vReportsList();return seg(rtab,'rtab',[['list',t('reports')],['sum',t('tabSum')]])+(rtab==='sum'?vSummary():vReportsList())}
+function vReports(){
+ const me=myPub();if(!me)return `<div class=card><div class=mut>${t('noPubLink')}</div></div>`;
+ const[y0,m0]=nowYM(),sy=curSY();
+ const rows=syMonths(sy).filter(([yy,mm])=>yy<y0||(yy===y0&&mm<=m0)).reverse();
+ return `<h3 style="margin:4px 0 8px">${t('myActT')}</h3>`+rows.map(([yy,mm])=>{const r=rep(me.id,yy,mm);
+  return `<div class=card onclick="openRep('${me.id}',${yy},${mm})" style="cursor:pointer"><div class=row><b class=sp>${t('months')[mm-1]} ${yy}</b><span class="pill ${r?'ok':'no'}">${r?t('reported'):t('missing')}</span></div>${r?`<div class=mut>${r.shared?'✓':'✗'} · ${r.studies||0} ${t('studies').toLowerCase()}${isPioneer(me)||r.hours?' · '+(r.hours||0)+' h':''}</div>`:''}</div>`}).join('')}
 function vReportsList(){
  if(!rm){const[y,m]=nowYM();rm=[y,m]}const[y,m]=rm;const sy=svcYearOf(y,m);
  const act=vp().filter(p=>p.active!==false).sort((a,b)=>a.name.localeCompare(b.name));
@@ -419,7 +478,7 @@ function openRep(id,y,m){if(y==null){[y,m]=rm||nowYM()}const p=S.pubs.find(x=>x.
  <label>${t('remarks')}</label><input id=rR value="${esc(r.remarks||'')}">
  <div class=row style="margin-top:12px"><button onclick="saveRep('${id}',${y},${m})">${t('save')}</button><button class=sec onclick="closeM()">${t('cancel')}</button><span class=sp></span>${rep(id,y,m)&&isCom()?`<button class="bad sm" onclick="clearRep('${id}',${y},${m})">${t('del')}</button>`:''}</div>`)}
 const ROLES={mid:['chairman','prayer','treasures','reading','part','part','part','prayer'],wk:['chairman','talk','wtReader','prayer','sound','mics','attendant']};
-function vMeetings(){if(!S.v3)return vMeetList();return seg(mtab,'mtab',[['prog',t('tabProg')],['att',t('tabAtt')]])+(mtab==='att'?vAtt():vMeetList())}
+function vMeetings(){return vMeetList()}
 function vMeetList(){
  const l=[...S.meetings].sort((a,b)=>b.date.localeCompare(a.date));
  return `<div class=row><h3 class=sp style="margin:0">${t('meetingsT')}</h3>${canMeet()?`<button onclick="meetForm()">+ ${t('newMeeting')}</button>`:''}</div>
@@ -482,9 +541,6 @@ function vSettings(){
  const c=CG(),u=U();
  return `<div class=card><div class=mut>${t('youAre')}</div><b>${esc(u.name)}</b><div class=mut>${esc(t('cat_'+u.category))}${u.functions.length?' · '+u.functions.map(f=>esc(t('fn_'+f))).join(', '):''}</div><div class=mut>${esc(c.name)} · ${t('congNumber')} ${esc(c.number)}</div><div class=row style="margin-top:10px"><button class=sec onclick="logout()">${t('logout')}</button></div></div>
  <div class=card><label>${t('language')}</label><select onchange="S.lang=this.value;persist();render()">${openLangs().map(l=>`<option value=${l.code} ${S.lang===l.code?'selected':''}>${esc(l.name)}${l.code==='en'?' ★':''}</option>`).join('')}</select><div class=mut>${t('lang2')}</div></div>
- ${isAdm()?`<div class=card><h3>${t('members')}</h3><div class=row><button onclick="sub='mem';render()">${t('members')} →</button></div><p class=mut>${t('congCode')}: <b>${esc(c.join)}</b></p></div>`:''}
- ${S.v3?`<div class=card><h3>${t('territories')}</h3><div class=row><button onclick="sub='ter';render()">${t('territories')} →</button></div></div>`:isAdm()?`<div class=card><div class=mut>${t('needSql')}</div></div>`:''}
- ${isCom()?vBackup():''}
  ${S.owner?`<div class=card><h3>${t('roleOwner')}</h3><div class=row><button onclick="openOwner()">${t('ownerView')} →</button></div></div>`:''}
  <div class=card><h3>${t('changeCode')}</h3><label>${t('newCode')}</label><input id=ccA type=password autocomplete=new-password><label>${t('codeConfirm')}</label><input id=ccB type=password autocomplete=new-password><div class=row style="margin-top:8px"><button onclick="chgCode()">${t('save')}</button></div></div>
  <div class=card><h3>${t('install')}</h3>${instBlock()}</div>`}
@@ -534,9 +590,9 @@ function doActivate(){const n=fv('gN').toLowerCase(),i=fv('gI').toLowerCase(),tc
  run(async()=>{const ok=await api('/rest/v1/rpc/check_invitation',{method:'POST',body:{p_number:n,p_identifier:i,p_code:tc},auth:false});if(!ok)throw new Error(t('badInvite'));
   await ensureAuth(emailOf(n,i),c);await rpc('claim_invitation',{p_number:n,p_identifier:i,p_code:tc});await afterAuth()})}
 /* ----- gestion des membres (administrateur) ----- */
-function vMem(){const c=CG(),pend=S.users.filter(u=>u.status==='pending'),act=S.users.filter(u=>u.status!=='pending');
+function vMem(inner){const c=CG(),pend=S.users.filter(u=>u.status==='pending'),act=S.users.filter(u=>u.status!=='pending');
  const pr=S.pioreq.filter(r=>r.status==='pending');
- return `<div class=row><button class="sm sec" onclick="sub=null;render()">← ${t('back')}</button><h3 class=sp style="margin:0">${t('members')}</h3></div>
+ return `${inner?'':`<div class=row><button class="sm sec" onclick="sub=null;render()">← ${t('back')}</button><h3 class=sp style="margin:0">${t('members')}</h3></div>`}
  <div class=card><div class=mut>${t('congNumber')} <b>${esc(c.number)}</b> · ${t('congCode')} <b>${esc(c.join)}</b></div></div>
  ${pend.length?`<div class=card><h3>${t('pendingAcc')}</h3>${pend.map(u=>`<div class=item onclick="memberForm('${u.id}')"><div class=av>${esc(u.name[0]||'?')}</div><div class=sp>${esc(u.name)}<div class=mut>${esc(u.identifier)}</div></div><span class="pill no">${t('approve')}</span></div>`).join('')}</div>`:''}
  ${pr.length?`<div class=card><h3>${t('pioReq')}</h3>${pr.map(r=>`<div class=item><div class=sp>${esc(pubName(r.pub))}<div class=mut>${t(r.kind)}</div></div><button class="sm" onclick="decidePio('${r.id}',true)">${t('approve')}</button> <button class="sm sec" onclick="decidePio('${r.id}',false)">${t('refuse')}</button></div>`).join('')}</div>`:''}
@@ -662,10 +718,10 @@ function fiche(id){const p=S.pubs.find(x=>x.id===id);ry=ry||curSY();let th=0,ts=
 /* ----- territoires ----- */
 const yearAgo=d=>!d||(Date.now()-new Date(d+'T00:00:00'))>365*864e5;
 function terSt(x){const as=S.tas.filter(a=>a.ter===x.id),cur=as.find(a=>!a.to),done=as.filter(a=>a.to).map(a=>a.to).sort().pop()||'';return{as,cur,done}}
-function vTer(){const l=[...S.ter].sort((a,b)=>a.num.localeCompare(b.num,undefined,{numeric:true}));let av=0,as=0,old=0;
+function vTer(inner){const l=[...S.ter].sort((a,b)=>a.num.localeCompare(b.num,undefined,{numeric:true}));let av=0,as=0,old=0;
  const items=l.map(x=>{const s=terSt(x);if(s.cur)as++;else av++;const lt=!s.cur&&yearAgo(s.done);if(lt)old++;
   return `<div class=item onclick="terCard('${x.id}')"><div class=av style="font-size:13px">${esc(x.num)}</div><div class=sp>${esc(x.name||'')}<div class="mut ${lt?'late':''}">${s.cur?`${t('assignedTo')} ${esc(pubName(s.cur.pub)||'?')} · ${t('since')} ${fmtShort(s.cur.from)}`:`${t('lastDone')}: ${s.done?fmtShort(s.done):t('never')}`}</div></div></div>`}).join('');
- return `<div class=row><button class="sm sec" onclick="sub=null;render()">← ${t('back')}</button><h3 class=sp style="margin:0">${t('territories')}</h3>${isCom()?`<button class=sm onclick="terForm()">+ ${t('add')}</button>`:''}</div>
+ return `<div class=row>${inner?'<span class=sp></span>':`<button class="sm sec" onclick="sub=null;render()">← ${t('back')}</button><h3 class=sp style="margin:0">${t('territories')}</h3>`}${isCom()?`<button class=sm onclick="terForm()">+ ${t('add')}</button>`:''}</div>
  <div class=grid style="margin-top:10px"><div class=stat><b>${as}/${l.length}</b>${t('assignedN')}</div><div class=stat><b class=late>${old}</b>${t('over12')}</div></div>
  <div class=card>${l.length?items:`<div class=mut>${t('noTer')}</div>`}</div>`}
 function terCard(id){const x=S.ter.find(v=>v.id===id),s=terSt(x),com=isCom();
@@ -708,6 +764,8 @@ Object.assign(T.en,{needSql5:'Update not installed yet (SQL part 5).',lastName:'
 Object.assign(T.fr,{shared:'Participation à une forme ou une autre de prédication',studies:'Nombre de cours bibliques',hours:'Heures (pionnier auxiliaire, permanent ou spécial, ou missionnaire)',remarks:'Remarques'});
 Object.assign(T.en,{shared:'Shared in some form of the ministry',studies:'Number of different Bible studies conducted',hours:'Hours (auxiliary, regular, or special pioneer or field missionary)',remarks:'Comments'});
 Object.assign(T.fr,{needSql5:'Mise à jour pas encore installée (SQL partie 5).',lastName:'Deuxième prénom (facultatif)',phones:'Numéros de téléphone',addPhone:'Ajouter un numéro',mar_divorced:'Divorcé(e)',lastName:'Nom',firstName:'Prénom',marital:'État civil',mar_single:'Célibataire',mar_married:'Marié(e)',mar_widowed:'Veuf / veuve',spouse:'Conjoint(e)',marrDate:'Date de mariage',myInfo:'Mes informations',noPubLink:"Votre compte n'est pas encore lié à une fiche de proclamateur. Demandez à un administrateur.",back:'Retour',menuT:'Menu',profile:'Mon profil',manageT:"Gestion de l'assemblée",menuSettings:'Paramètres',refreshNow:'Actualiser',mySpace:'Mon espace',photo:'Photo',photoSet:'Photo enregistrée',photoNote:"La photo est ajoutée par un administrateur de l'assemblée.",changePhoto:'Changer ma photo',skip:'Passer',annFor:'Afficher pendant',d3:'3 jours',d7:'1 semaine',d14:'2 semaines',d30:'1 mois',dInf:"Sans limite (jusqu'au retrait)",annsT:'Communiqués',history:'Historique',withdraw:"Retirer de l'affichage",expired:'Expiré',until:"jusqu'au",noLimit:'sans limite',histEmpty:'Aucun communiqué pour le moment.',withdrawn:"Retiré de l'affichage.",fn_admin:'Administrateur',allGroups:'Tous les groupes',myGroupT:'Mon groupe',helloSplash:"Bienvenue {n} à la plateforme de l'assemblée locale de {c}",board:'Communiqués',newAnn:'Nouveau communiqué',annTitle:'Titre',annText:'Message',noAnn:'Aucune annonce pour le moment.',post:'Publier',tabPeople:'Proclamateurs',tabAct:'Activité de prédication',hello:"Bienvenue {n} à l'assemblée locale de {c}",yourGroup:'Votre groupe de prédication',notYetMine:"Votre activité de prédication n'est pas encore rapportée",giveNow:'Rapporter mon activité',doneMine:'Votre activité est rapportée',myAssign:'Mes programmes',noAssign:'Aucune partie ne vous est confiée pour le moment.'});
+Object.assign(T.en,{"dc_act": "Preaching activity", "dc_att": "Meeting attendance", "dc_anc": "Elders and ministerial servants", "dc_acc": "Accounting", "dc_let": "Letters of introduction", "dc_pio": "Pioneers", "dc_co": "Circuit overseer visit report", "dc_hall": "Kingdom Hall", "dc_ter": "Territory", "adminT": "Administration", "adminSub": "Roles, members and backup", "docsT": "Documents", "docsN": "document(s)", "active": "active", "newCat": "New category", "catName": "Category name", "catHasDocs": "Delete the documents of this category first.", "newDoc": "New document", "docTitle": "Title", "docNote": "Notes / content", "noDocs": "No documents yet.", "needSql6": "Update not installed yet (SQL part 6).", "myActT": "My preaching activity", "noPioReq": "No pending request."});
+Object.assign(T.fr,{"dc_act": "Activités de prédication", "dc_att": "Assistance aux réunions", "dc_anc": "Anciens et assistants ministériels", "dc_acc": "Comptabilité", "dc_let": "Lettres d'introduction", "dc_pio": "Pionniers", "dc_co": "Rapport sur la visite du responsable de circonscription", "dc_hall": "Salle du Royaume", "dc_ter": "Territoire", "adminT": "Administration", "adminSub": "Rôles, membres et sauvegarde", "docsT": "Documents", "docsN": "document(s)", "active": "actif(s)", "newCat": "Nouvelle catégorie", "catName": "Nom de la catégorie", "catHasDocs": "Supprimez d'abord les documents de cette catégorie.", "newDoc": "Nouveau document", "docTitle": "Titre", "docNote": "Notes / contenu", "noDocs": "Aucun document pour le moment.", "needSql6": "Mise à jour pas encore installée (SQL partie 6).", "myActT": "Mon activité de prédication", "noPioReq": "Aucune demande en attente."});
 let _pl=null;
 function loadPdfLib(){if(window.PDFLib)return Promise.resolve();return _pl||(_pl=new Promise((ok,ko)=>{const s=document.createElement('script');s.src='pdf-lib.min.js';s.onload=ok;s.onerror=()=>{_pl=null;ko(new Error('pdf-lib'))};document.head.appendChild(s)}))}
 const sf=s=>String(s==null?'':s).replace(/[^\x20-\x7E\xA0-\xFF’‘“”–—…]/g,c=>c.normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^\x20-\x7E]/g,'?'));
